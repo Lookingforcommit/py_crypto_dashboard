@@ -9,10 +9,12 @@ class WSManager:
     """
     The class is used to manage websocket connections and provide real-time market data
     """
-    def __init__(self, app: 'frontend.main_app.App', api_key: str, watchlist_assets: Dict[str, Dict[str, float]]):
+    def __init__(self, app: 'frontend.main_app.App', api_key: str, watchlist_assets: Dict[str, Dict[str, float]],
+                 assets_settings: Dict[str, Dict[str, Optional[int]]]):
         self.app = app
         self.api_key = api_key
         self.watchlist_assets = watchlist_assets
+        self.assets_settings = assets_settings
         self.active_ws: Optional[websockets.WebSocketClientProtocol] = None
 
     async def ws_subscribe_to_agg_index(self) -> None:
@@ -32,11 +34,11 @@ class WSManager:
                 try:
                     data = await ws.recv()
                     data = json.loads(data)
-                    self.process_ws_update(data)
+                    self.process_ws_agg_idx_update(data)
                 except websockets.ConnectionClosed:
                     continue
 
-    def process_ws_update(self, update: Dict[str, Union[str, int, float]]) -> None:
+    def process_ws_agg_idx_update(self, update: Dict[str, Union[str, int, float]]) -> None:
         """
         Process the websocket message data and update the market data
         :param update: ws message

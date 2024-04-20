@@ -10,9 +10,11 @@ class APIKeysMenu(ctk.CTkToplevel):
     """
     A CTkToplevel window that allows the user to manage his API keys
     """
+    WINDOW_NAME = 'Менеджмент API ключей'
     def __init__(self, master: 'frontend.main_app.SidebarMenu', app: 'frontend.main_app.App', api_keys: Dict[str, str],
                  active_api_key: StringVar):
         super().__init__(master)
+        self.title(self.WINDOW_NAME)
         self.geometry(f"{1100}x{580}")
         self.sidebar_menu = master
         self.api_keys = api_keys
@@ -48,8 +50,8 @@ class APIKeysTable(ctk.CTkScrollableFrame):
         Create a header for the API keys table
         """
         self.grid_columnconfigure((1, 2), weight=1)
-        key_name = ctk.CTkLabel(self, text='Key name', font=('Lucida Console', 14))
-        key = ctk.CTkLabel(self, text='Key', font=('Lucida Console', 14))
+        key_name = ctk.CTkLabel(self, text='Название ключа', font=('Lucida Console', 14))
+        key = ctk.CTkLabel(self, text='Ключ', font=('Lucida Console', 14))
         key_name.grid(row=1, column=1, sticky='w')
         key.grid(row=1, column=2, sticky='w')
 
@@ -87,14 +89,14 @@ class APIKeysTable(ctk.CTkScrollableFrame):
 
 
 class APIKeyContainer:
+    """
+    The class acts as a container for the API key row
+    """
     RESOURCES_DIR = path.join(path.dirname(__file__), 'resources')
     DELETE_ICON_BLACK_PATH = f'{RESOURCES_DIR}/delete_icon_black.png'
     DELETE_ICON_WHITE_PATH = f'{RESOURCES_DIR}/delete_icon_white.png'
     EYE_ICON_WHITE_PATH = f'{RESOURCES_DIR}/eye_icon_white.png'
     EYE_ICON_BLACK_PATH = f'{RESOURCES_DIR}/eye_icon_black.png'
-    """
-    The class acts as a container for the API key row
-    """
 
     def __init__(self, master: APIKeysTable, key_name: str, key: str, row: int):
         self.api_keys_table = master
@@ -168,14 +170,14 @@ class NewAPIKeyFrame(ctk.CTkFrame):
         super().__init__(master, fg_color='transparent')
         self.api_keys_table = api_keys_table
         self.api_keys = api_keys
-        self.key_name_var = StringVar(self, 'Key name')
-        self.key_var = StringVar(self, 'Key')
+        self.key_name_var = StringVar(self, value='Название ключа')
+        self.key_var = StringVar(self, value='Ключ')
         self.error_message = StringVar(self, '')
         self.error_label = self.error_label = ctk.CTkLabel(self, text_color="red", textvariable=self.error_message,
                                                            font=('Lucida Console', 14), fg_color='transparent')
         self.key_name_entry = ctk.CTkEntry(self, textvariable=self.key_name_var)
         self.key_entry = ctk.CTkEntry(self, textvariable=self.key_var)
-        self.enter_button = ctk.CTkButton(self, text='Add', command=self.validate_key)
+        self.enter_button = ctk.CTkButton(self, text='Добавить', command=self.validate_key)
         self.columnconfigure((0, 1), weight=1)
         self.key_name_entry.grid(row=0, column=0, sticky='ew')
         self.key_entry.grid(row=0, column=1, sticky='ew')
