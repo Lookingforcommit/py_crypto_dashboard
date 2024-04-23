@@ -31,4 +31,4 @@ You can add new assets to the watchlist in the "Add asset" window. It is opened 
 
 You can manage your cryptocompare API keys in the API keys management menu. It is also opened through the sidebar menu.
 
-![py_crypto_dashboard](/resources/readme_files/adding_assets.gif)
+![py_crypto_dashboard](/resources/readme_files/api_keys_settings.gif)
