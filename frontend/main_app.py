@@ -158,9 +158,9 @@ class WatchlistFrame(ctk.CTkScrollableFrame):
         Create a header for the watchlist table
         """
         self.grid_columnconfigure((1, 2, 3), weight=1)
-        asset = ctk.CTkLabel(self, text='Актив', font=('Helvetica', 14))
-        price = ctk.CTkLabel(self, text='Цена', font=('Helvetica', 14))
-        change = ctk.CTkLabel(self, text='Изменение', font=('Helvetica', 14))
+        asset = ctk.CTkLabel(self, text='Asset', font=('Helvetica', 14))
+        price = ctk.CTkLabel(self, text='Price', font=('Helvetica', 14))
+        change = ctk.CTkLabel(self, text='Price change', font=('Helvetica', 14))
         asset.grid(row=0, column=1, sticky='w')
         price.grid(row=0, column=2, sticky='w')
         change.grid(row=0, column=3, sticky='w')
@@ -304,7 +304,8 @@ class AssetContainer:
         self.price_label.destroy()
         self.change_label.destroy()
         self.delete_button.destroy()
-        self.asset_settings_window.destroy()
+        if self.asset_settings_window:
+            self.asset_settings_window.destroy()
         self.settings_button.destroy()
         self.watchlist_frame.delete_asset(self.asset_ticker)
 
@@ -322,11 +323,9 @@ class AssetSettingsWindow(ctk.CTkToplevel):
     """
     A CTkToplevel window that allows the user to change the asset display settings
     """
-    WINDOW_NAME = 'Настройки актива'
-
     def __init__(self, master: App, asset_ticker: str, asset_settings: Dict[str, int]):
         super().__init__(master)
-        self.title(f'{self.WINDOW_NAME} {asset_ticker}')
+        self.title(asset_ticker)
         self.geometry('500x120')
         self.app = master
         self.asset_ticker = asset_ticker
@@ -348,12 +347,12 @@ class AssetSettingsWindow(ctk.CTkToplevel):
         """
         Initialize the frames and place them in the settings frame
         """
-        self.price_rounding_label = ctk.CTkLabel(self, text='Количество десятичных знаков цены', font=('Helvetica', 14))
-        self.change_rounding_label = ctk.CTkLabel(self, text='Количество десятичных знаков изменения цены',
+        self.price_rounding_label = ctk.CTkLabel(self, text='Price decimal places', font=('Helvetica', 14))
+        self.change_rounding_label = ctk.CTkLabel(self, text='Price change decimal places',
                                                   font=('Helvetica', 14))
         self.price_rounding_entry = ctk.CTkEntry(self, textvariable=self.price_rounding_var, font=('Helvetica', 14))
         self.change_rounding_entry = ctk.CTkEntry(self, textvariable=self.change_rounding_var, font=('Helvetica', 14))
-        self.save_button = ctk.CTkButton(self, text='Сохранить', command=self.save_settings)
+        self.save_button = ctk.CTkButton(self, text='Save', command=self.save_settings)
         self.error_label = ctk.CTkLabel(self, text_color='red', textvariable=self.error_message, font=('Helvetica', 14))
         self.columnconfigure((0, 1), weight=1)
         self.price_rounding_label.grid(row=0, column=0, sticky='w', padx=(10, 0))
@@ -379,14 +378,14 @@ class AssetSettingsWindow(ctk.CTkToplevel):
             self.shown_asset_settings = new_shown_asset_settings
             self.withdraw()
         else:
-            self.error_message.set('Некорректное значение количества десятичных знаков')
+            self.error_message.set('Incorrect decimal places value')
 
 
 class NewAssetWindow(ctk.CTkToplevel):
     """
     A CTkToplevel window that allows the user to add an asset to the watchlist
     """
-    WINDOW_NAME = 'Добавить актив'
+    WINDOW_NAME = 'Add asset'
 
     def __init__(self, master: App, valid_assets: Set[str], watchlist_assets: Dict[str, Dict[str, float]]):
         super().__init__(master)
@@ -400,7 +399,7 @@ class NewAssetWindow(ctk.CTkToplevel):
         self.new_asset = StringVar(self, value='BTC')
         self.error_label = ctk.CTkLabel(self, text_color='red', textvariable=self.error_message, font=('Helvetica', 14))
         self.entry = ctk.CTkEntry(self, textvariable=self.new_asset, font=('Helvetica', 14))
-        self.validation_button = ctk.CTkButton(self, text='Добавить', command=self.validate_asset)
+        self.validation_button = ctk.CTkButton(self, text='Add', command=self.validate_asset)
         self.entry.grid(row=0, column=0, sticky='ew')
         self.validation_button.grid(row=0, column=1)
         self.error_label.grid(row=1, column=0, sticky='ew')
@@ -411,9 +410,9 @@ class NewAssetWindow(ctk.CTkToplevel):
         """
         new_asset = self.new_asset.get()
         if new_asset in self.watchlist_assets:
-            self.error_message.set('Данный актив уже присутствует в вотчлисте')
+            self.error_message.set('The asset is already present in the watchlist')
         elif new_asset not in self.valid_assets:
-            self.error_message.set('Введён некорректный тикер')
+            self.error_message.set('Incorrect asset ticker')
         else:
             self.app.add_asset_to_watchlist(new_asset)
             self.error_message.set('')
@@ -423,11 +422,6 @@ class SidebarMenu(ctk.CTkFrame):
     """
     The class implements a sidebar menu which contains UI settings, watchlist editing functionality, API keys settings
     """
-    APPEARANCE_TRANSLATION = {
-        'Системная': 'System',
-        'Светлая': 'Light',
-        'Тёмная': 'Dark'
-    }
 
     def __init__(self, master: App, valid_assets: Set[str], watchlist_assets: Dict[str, Dict[str, float]],
                  api_keys: Dict[str, str], active_api_key: StringVar):
@@ -446,12 +440,12 @@ class SidebarMenu(ctk.CTkFrame):
         Initialize the frames and place them in the sidebar menu
         """
         logo_label = ctk.CTkLabel(self, text=APP_NAME, font=ctk.CTkFont(size=20, weight='bold'))
-        new_asset_button = ctk.CTkButton(self, height=40, text='Добавить актив', command=self.open_new_asset_menu)
-        appearance_mode_label = ctk.CTkLabel(self, text='Выбор темы:')
-        default_theme = StringVar(self, 'Системная')
-        appearance_mode_optionmenu = ctk.CTkOptionMenu(self, values=['Светлая', 'Тёмная', 'Системная'],
+        new_asset_button = ctk.CTkButton(self, height=40, text='Add asset', command=self.open_new_asset_menu)
+        appearance_mode_label = ctk.CTkLabel(self, text='Theme settings:')
+        default_theme = StringVar(self, 'System')
+        appearance_mode_optionmenu = ctk.CTkOptionMenu(self, values=['System', 'Light', 'Dark'],
                                                        command=self.change_appearance_mode, variable=default_theme)
-        api_keys_label = ctk.CTkLabel(self, text='Выбор API-ключа:')
+        api_keys_label = ctk.CTkLabel(self, text='API keys settings:')
         api_keys_button = ctk.CTkButton(self, textvariable=self.active_api_key, command=self.open_api_keys_menu)
         self.rowconfigure(2, weight=1)
         logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
@@ -461,12 +455,12 @@ class SidebarMenu(ctk.CTkFrame):
         appearance_mode_label.grid(row=5, column=0)
         appearance_mode_optionmenu.grid(row=6, column=0)
 
-    def change_appearance_mode(self, new_appearance_mode: str) -> None:
+    @staticmethod
+    def change_appearance_mode(new_appearance_mode: str) -> None:
         """
         Change the app theme
         :param new_appearance_mode: new theme
         """
-        new_appearance_mode = self.APPEARANCE_TRANSLATION[new_appearance_mode]
         ctk.set_appearance_mode(new_appearance_mode)
 
     def open_new_asset_menu(self) -> None:
