@@ -1,16 +1,45 @@
 import websockets
 import json
 import asyncio
-from typing import Dict, Union, Optional
-import frontend.main_app
 import requests
-import os
+from os.path import isfile
+from typing import Dict, Union, Optional
+from PIL import Image
+from io import BytesIO
+
+import frontend.main_app
+
+
+def download_asset_icon(asset_ticker: str, icon_path: str, api_key: str) -> bool:
+    """
+    Download the asset icon using the CryptoCompare API and remove the white color
+    :param asset_ticker: asset ticker
+    :param icon_path: path to save the downloaded icon
+    :param api_key: CryptoCompare API key
+    """
+    url = f'https://data-api.cryptocompare.com/asset/v1/data/by/symbol?asset_symbol={asset_ticker}&api_key={api_key}'
+    if not isfile(icon_path):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()  # Raise an exception for 4xx or 5xx status codes just in case :)
+            asset_data = response.json()
+            logo_url = asset_data['Data']['LOGO_URL']
+            logo_response = requests.get(logo_url)
+            logo_response.raise_for_status()  # Same as comment above
+            image = Image.open(BytesIO(logo_response.content), formats=('PNG',))
+            image.save(icon_path)
+            return True
+        except requests.HTTPError:
+            return False
+    else:
+        return True
 
 
 class WSManager:
     """
     The class is used to manage websocket connections and provide real-time market data
     """
+
     def __init__(self, app: 'frontend.main_app.App', api_key: str, watchlist_assets: Dict[str, Dict[str, float]],
                  assets_settings: Dict[str, Dict[str, Optional[int]]]):
         self.app = app
@@ -18,26 +47,6 @@ class WSManager:
         self.watchlist_assets = watchlist_assets
         self.assets_settings = assets_settings
         self.active_ws: Optional[websockets.WebSocketClientProtocol] = None
-
-    async def validate_api_key(self) -> bool:
-        """
-        Validate the Cryptocompare API key
-        :return: True if valid, False otherwise
-        Docs reference: https://min-api.cryptocompare.com/documentation/websockets?key=Channels&cat=Trade
-        """
-        url = "wss://streamer.cryptocompare.com/v2?api_key=" + self.api_key
-        async with websockets.connect(url) as ws:
-            self.active_ws = ws
-            while True:
-                message = await ws.recv()
-                data = json.loads(message)
-                if 'MESSAGE' in data:
-                    if data['MESSAGE'] == "STREAMERWELCOME":
-                        await self.close_connection()
-                        return True
-                    else:
-                        await self.close_connection()
-                        return False
 
     async def ws_subscribe_to_agg_index(self) -> None:
         """
@@ -60,6 +69,14 @@ class WSManager:
                 except websockets.ConnectionClosed:
                     continue
 
+    def stop_active_ws(self) -> None:
+        """
+        Stop the active websocket connection
+        """
+        if self.active_ws is not None:
+            asyncio.create_task(self.active_ws.close())
+            self.active_ws = None
+
     def process_ws_agg_idx_update(self, update: Dict[str, Union[str, int, float]]) -> None:
         """
         Process the websocket message data and update the market data
@@ -78,16 +95,8 @@ class WSManager:
                     self.watchlist_assets[asset]['change'] = change
                 self.app.update_watchlist_assets(asset)
 
-    def stop_active_ws(self) -> None:
-        """
-        Stop the active websocket connection
-        """
-        if self.active_ws is not None:
-            asyncio.create_task(self.active_ws.close())
-            self.active_ws = None
-
     @staticmethod
-    def calculate_percentage_change(open_price, cur_price) -> float:
+    def calculate_percentage_change(open_price: float, cur_price: float) -> float:
         """
         Calculate the price percentage change since the beginning of the trade day
         :param open_price: open price for the asset
@@ -95,32 +104,3 @@ class WSManager:
         :return: the price percentage change
         """
         return ((cur_price - open_price) / open_price) * 100
-    
-    def download_asset_icon(asset: str, icon_path: str) -> None:
-        """
-        Download the asset icon and save it to the specified path
-        If the download fails, download the 404 error icon instead.
-        :param asset: Asset ticker
-        :param icon_path: Path to save the icon
-        """
-        ASSETS_ICON_PATH = AssetContainer.ASSETS_ICON_PATH 
-        """
-        Вроде так указывать путь, но я так до конца и не понял
-        Я импортнул из main_app всё, чтобы разобраться, но чет не попёрло
-        Анлак ищу ошибки
-        """
-        if not os.path.exists(ASSETS_ICON_PATH):#эта часть сделана на прикол
-            os.makedirs(ASSETS_ICON_PATH)#и эта тоже. ниже вроде норм код
-        
-        icon_url = f"https://cryptocompare.com/media/{asset.lower()}/64.png"
-        error_icon_url = "https://via.placeholder.com/64?text=404"
-        response = requests.get(icon_url)
-        if response.status_code == 200:
-            with open(icon_path, 'wb') as f:
-                f.write(response.content)
-        else:
-            # Download the error icon if the asset icon is not available
-            response = requests.get(error_icon_url)
-            if response.status_code == 200:
-                with open(icon_path, 'wb') as f:
-                    f.write(response.content)

@@ -4,7 +4,7 @@ from tkinter import StringVar, DoubleVar
 from PIL import Image
 from typing import Dict, Set, Optional
 from frontend.api_keys_management import APIKeysMenu
-from backend.market_data_management import WSManager
+from backend.market_data_management import WSManager, download_asset_icon
 from os import path
 
 APP_NAME = 'PyCryptoDashboard'
@@ -61,7 +61,8 @@ class App(ctk.CTk):
         self.assets_settings = assets_settings
         self.api_keys = api_keys  # {name: key}
         self.active_api_key = StringVar(self, active_api_key)  # name
-        self.watchlist_frame = WatchlistFrame(self, self.watchlist_assets, self.assets_settings)
+        self.watchlist_frame = WatchlistFrame(self, self.watchlist_assets, self.active_api_key, self.api_keys,
+                                              self.assets_settings)
         self.sidebar_frame = SidebarMenu(self, self.valid_assets, self.watchlist_assets, self.api_keys,
                                          self.active_api_key)
         self.grid_columnconfigure(1, weight=1)
@@ -137,13 +138,15 @@ class WatchlistFrame(ctk.CTkScrollableFrame):
     The class implements a watchlist frame which is displayed on the main page
     """
 
-    def __init__(self, master: App, watchlist_assets: Dict[str, Dict[str, float]],
-                 assets_settings: Dict[str, Dict[str, Optional[int]]]):
+    def __init__(self, master: App, watchlist_assets: Dict[str, Dict[str, float]], active_api_key: StringVar,
+                 api_keys: Dict[str, str], assets_settings: Dict[str, Dict[str, Optional[int]]]):
         super().__init__(master, fg_color='transparent')
         self.app = master
         self.assets_settings = assets_settings
-        self.asset_frames: Dict[str, AssetContainer] = {}
         self.watchlist_assets = watchlist_assets
+        self.active_api_key = active_api_key
+        self.api_keys = api_keys
+        self.asset_frames: Dict[str, AssetContainer] = {}
         self.shown_data = {}
         self._create_header()
         self.used_rows = 1
@@ -173,7 +176,7 @@ class WatchlistFrame(ctk.CTkScrollableFrame):
         data = self.shown_data[asset_ticker]
         price, change = data['price'], data['change']
         asset = AssetContainer(self, self.app, asset_ticker, price, change, self.assets_settings[asset_ticker],
-                               self.used_rows)
+                               self.used_rows, self.api_keys, self.active_api_key)
         self.asset_frames[asset_ticker] = asset
         self.used_rows += 1
 
@@ -223,12 +226,14 @@ class AssetContainer:
     ASSETS_ICON_PATH = f'{RESOURCES_DIR}/asset_icons'
 
     def __init__(self, master: WatchlistFrame, app: App, asset_ticker: str, price: float, change: float,
-                 asset_settings: Dict[str, Optional[int]], row: int):
+                 asset_settings: Dict[str, Optional[int]], row: int, api_keys: Dict[str, str],
+                 active_api_key: StringVar):
         self.watchlist_frame = master
         self.app = app
         self.asset_ticker = asset_ticker
         self.asset_settings = asset_settings
-        self.icon_path = f'{self.ASSETS_ICON_PATH}/{asset_ticker}.png'
+        icon_path = f'{self.ASSETS_ICON_PATH}/{asset_ticker}.png'
+        error_icon_path = f'{self.ASSETS_ICON_PATH}/error_icon.png'
         self.price_var = DoubleVar(master, price)
         self.change_var = DoubleVar(master, change)
         self.row = row
@@ -238,6 +243,11 @@ class AssetContainer:
         self.price_label: Optional[ctk.CTkLabel] = None
         self.asset_ticker_label = None
         self.asset_settings_window: Optional[ctk.CTkLabel] = None
+        self.settings_button = None
+        if download_asset_icon(self.asset_ticker, icon_path, api_keys[active_api_key.get()]):
+            self.icon_path = icon_path
+        else:
+            self.icon_path = error_icon_path
         self.init_frames()
 
     def init_frames(self) -> None:
