@@ -190,7 +190,7 @@ class NewAPIKeyFrame(ctk.CTkFrame):
         Validate the entered API key
         """
         if self.key_name_var.get() in self.api_keys or self.key_var.get() in self.api_keys.values():
-            self.error_message.set('Данный API-ключ уже присутствует в таблице')
+            self.error_message.set('The API key is already present in the table')
         else:
             self.api_keys[self.key_name_var.get()] = self.key_var.get()
             self.api_keys_table.add_api_key(self.key_name_var.get())
