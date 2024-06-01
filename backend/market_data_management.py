@@ -4,8 +4,39 @@ import asyncio
 from typing import Dict, Union, Optional
 import mysql.connector
 from mysql.connector import Error
+from datetime import datetime
+import requests
+from os.path import isfile
+from PIL import Image
+from io import BytesIO
+
 import frontend.main_app
-import datetime
+from config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
+
+
+def download_asset_icon(asset_ticker: str, icon_path: str, api_key: str) -> bool:
+    """
+    Download the asset icon using the CryptoCompare API and remove the white color
+    :param asset_ticker: asset ticker
+    :param icon_path: path to save the downloaded icon
+    :param api_key: CryptoCompare API key
+    """
+    url = f'https://data-api.cryptocompare.com/asset/v1/data/by/symbol?asset_symbol={asset_ticker}&api_key={api_key}'
+    if not isfile(icon_path):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()  # Raise an exception for 4xx or 5xx status codes just in case :)
+            asset_data = response.json()
+            logo_url = asset_data['Data']['LOGO_URL']
+            logo_response = requests.get(logo_url)
+            logo_response.raise_for_status()  # Same as comment above
+            image = Image.open(BytesIO(logo_response.content), formats=('PNG',))
+            image.save(icon_path)
+            return True
+        except requests.HTTPError:
+            return False
+    else:
+        return True
 
 
 class WSManager:
@@ -13,7 +44,7 @@ class WSManager:
     The class is used to manage websocket connections and provide real-time market data
     """
 
-    def init(self, app: 'frontend.main_app.App', api_key: str, watchlist_assets: Dict[str, Dict[str, float]],
+    def __init__(self, app: 'frontend.main_app.App', api_key: str, watchlist_assets: Dict[str, Dict[str, float]],
                  assets_settings: Dict[str, Dict[str, Optional[int]]]):
         self.app = app
         self.api_key = api_key
@@ -22,6 +53,16 @@ class WSManager:
         self.active_ws: Optional[websockets.WebSocketClientProtocol] = None
         self.db_connection = None
         self.db_cursor = None
+
+    @staticmethod
+    def calculate_percentage_change(open_price: float, cur_price: float) -> float:
+        """
+        Calculate the price percentage change since the beginning of the trade day
+        :param open_price: open price for the asset
+        :param cur_price: current price for the asset
+        :return: the price percentage change
+        """
+        return ((cur_price - open_price) / open_price) * 100
 
     async def ws_subscribe_to_agg_index(self) -> None:
         """
@@ -44,6 +85,14 @@ class WSManager:
                 except websockets.ConnectionClosed:
                     continue
 
+    def stop_active_ws(self) -> None:
+        """
+        Stop the active websocket connection
+        """
+        if self.active_ws is not None:
+            asyncio.create_task(self.active_ws.close())
+            self.active_ws = None
+
     def process_ws_agg_idx_update(self, update: Dict[str, Union[str, int, float]]) -> None:
         """
         Process the websocket message data and update the market data
@@ -63,68 +112,38 @@ class WSManager:
                     self.app.update_watchlist_assets(asset)
                     # Добавление данных в базу данных
                     self.connect_to_db()
-                    update_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    update_time = datetime.now()
                     self.insert_to_history_date(asset, price, update_time, change)
                     self.close_db_connection()
 
     def connect_to_db(self):
         try:
             self.db_connection = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="gywMom-4kesca-fewdyj",
-                database="crypto_data"
+                host=DB_HOST,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                database=DB_NAME
             )
             self.db_cursor = self.db_connection.cursor()
         except Error as e:
             print(f"Error connecting to MySQL: {e}")
 
-    def insert_to_history_date(self, asset_name: str, price: int, update_time: str, change: float):
+    def insert_to_history_date(self, asset_name: str, price: int, update_time: datetime, change: float):
         if self.db_cursor:
-            query = "SELECT * FROM history_date WHERE asset_name = %s ORDER BY update_id DESC LIMIT 1"
-            self.db_cursor.execute(query, (asset_name,))
-            result = self.db_cursor.fetchone()
-
-            if result:
-                # Обновляем существующую запись
-                query = "UPDATE history_date SET price = %s, update_time = %s, change = %s WHERE asset_name = %s ORDER BY update_id DESC LIMIT 1"
-                values = (price, update_time, change, asset_name)
-            else:
-                # Вставляем новую запись
-                query = "INSERT INTO history_date (asset_name, price, update_time, change) VALUES (%s, %s, %s, %s)"
-                values = (asset_name, price, update_time, change)
-
+            # Вставляем новую запись
+            query = "INSERT INTO history_date (asset_name, price, update_time, `change`) VALUES (%s, %s, %s, %s)"
+            values = (asset_name, price, update_time, change)
             try:
                 self.db_cursor.execute(query, values)
                 self.db_connection.commit()
                 print("Record inserted or updated successfully into history_date table")
             except Error as e:
                 print(f"Error inserting or updating record: {e}")
-            else:
-                print("Database cursor is not available.")
 
-            def close_db_connection(self):
-                if self.db_connection and self.db_connection.is_connected():
-                    self.db_cursor.close()
-                    self.db_connection.close()
-                    print("MySQL connection is closed")
-                else:
-                    print("No active database connection to close.")
-
-            @staticmethod
-            def calculate_percentage_change(open_price: float, cur_price: float) -> float:
-                """
-                Calculate the price percentage change since the beginning of the trade day
-                :param open_price: open price for the asset
-                :param cur_price: current price for the asset
-                :return: the price percentage change
-                """
-                return ((cur_price - open_price) / open_price) * 100
-
-            def stop_active_ws(self) -> None:
-                """
-                Stop the active websocket connection
-                """
-                if self.active_ws is not None:
-                    asyncio.create_task(self.active_ws.close())
-                    self.active_ws = None
+    def close_db_connection(self):
+        if self.db_connection and self.db_connection.is_connected():
+            self.db_cursor.close()
+            self.db_connection.close()
+            print("MySQL connection is closed")
+        else:
+            print("No active database connection to close.")
