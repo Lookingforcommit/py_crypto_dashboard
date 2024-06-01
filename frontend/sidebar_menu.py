@@ -20,7 +20,7 @@ class NewAssetWindow(ctk.CTkToplevel):
         self.watchlist_assets = watchlist_assets
         self.app = master
         self.geometry('500x150')
-        self.grid_columnconfigure((0), weight=1)
+        self.grid_columnconfigure(0, weight=1)
         self.error_message = StringVar(self, value='')
         self.new_asset = StringVar(self, value='BTC')
         self.error_label = ctk.CTkLabel(self, text_color='red', textvariable=self.error_message, font=('Helvetica', 14))

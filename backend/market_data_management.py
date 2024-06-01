@@ -1,13 +1,17 @@
 import websockets
 import json
 import asyncio
+from typing import Dict, Union, Optional
+import mysql.connector
+from mysql.connector import Error
+from datetime import datetime
 import requests
 from os.path import isfile
-from typing import Dict, Union, Optional
 from PIL import Image
 from io import BytesIO
 
 import frontend.main_app
+from config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
 
 
 def download_asset_icon(asset_ticker: str, icon_path: str, api_key: str) -> bool:
@@ -47,6 +51,18 @@ class WSManager:
         self.watchlist_assets = watchlist_assets
         self.assets_settings = assets_settings
         self.active_ws: Optional[websockets.WebSocketClientProtocol] = None
+        self.db_connection = None
+        self.db_cursor = None
+
+    @staticmethod
+    def calculate_percentage_change(open_price: float, cur_price: float) -> float:
+        """
+        Calculate the price percentage change since the beginning of the trade day
+        :param open_price: open price for the asset
+        :param cur_price: current price for the asset
+        :return: the price percentage change
+        """
+        return ((cur_price - open_price) / open_price) * 100
 
     async def ws_subscribe_to_agg_index(self) -> None:
         """
@@ -93,14 +109,41 @@ class WSManager:
                     change = self.calculate_percentage_change(open_price, price)
                     self.watchlist_assets[asset]['price'] = price
                     self.watchlist_assets[asset]['change'] = change
-                self.app.update_watchlist_assets(asset)
+                    self.app.update_watchlist_assets(asset)
+                    # Добавление данных в базу данных
+                    self.connect_to_db()
+                    update_time = datetime.now()
+                    self.insert_to_history_date(asset, price, update_time, change)
+                    self.close_db_connection()
 
-    @staticmethod
-    def calculate_percentage_change(open_price: float, cur_price: float) -> float:
-        """
-        Calculate the price percentage change since the beginning of the trade day
-        :param open_price: open price for the asset
-        :param cur_price: current price for the asset
-        :return: the price percentage change
-        """
-        return ((cur_price - open_price) / open_price) * 100
+    def connect_to_db(self):
+        try:
+            self.db_connection = mysql.connector.connect(
+                host=DB_HOST,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                database=DB_NAME
+            )
+            self.db_cursor = self.db_connection.cursor()
+        except Error as e:
+            print(f"Error connecting to MySQL: {e}")
+
+    def insert_to_history_date(self, asset_name: str, price: int, update_time: datetime, change: float):
+        if self.db_cursor:
+            # Вставляем новую запись
+            query = "INSERT INTO history_date (asset_name, price, update_time, `change`) VALUES (%s, %s, %s, %s)"
+            values = (asset_name, price, update_time, change)
+            try:
+                self.db_cursor.execute(query, values)
+                self.db_connection.commit()
+                print("Record inserted or updated successfully into history_date table")
+            except Error as e:
+                print(f"Error inserting or updating record: {e}")
+
+    def close_db_connection(self):
+        if self.db_connection and self.db_connection.is_connected():
+            self.db_cursor.close()
+            self.db_connection.close()
+            print("MySQL connection is closed")
+        else:
+            print("No active database connection to close.")
