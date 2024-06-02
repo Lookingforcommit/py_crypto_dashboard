@@ -1,5 +1,5 @@
 from frontend.main_app import App
-from config import API_KEY
+from config import API_KEY, DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
 import asyncio
 
 
@@ -9,5 +9,6 @@ if __name__ == "__main__":
     assets_settings = {}
     api_keys = {'Name1': API_KEY}
     active_api_key = 'Name1'
-    app = App(valid_assets, watchlist_assets, assets_settings, api_keys, active_api_key)
+    app = App(valid_assets, watchlist_assets, assets_settings, api_keys, active_api_key, DB_HOST, DB_USER,
+              DB_PASSWORD, DB_NAME)
     asyncio.run(app.run())

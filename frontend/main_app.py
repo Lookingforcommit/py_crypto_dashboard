@@ -4,6 +4,7 @@ from tkinter import StringVar
 from typing import Dict, Set, Optional
 
 from backend.market_data_management import WSManager
+from backend.db_management import DBManager
 from frontend.watchlist_management import WatchlistFrame
 from frontend.sidebar_menu import SidebarMenu
 
@@ -17,7 +18,8 @@ class App(ctk.CTk):
     """
 
     def __init__(self, valid_assets: Set[str], watchlist_assets: Dict[str, Dict[str, float]],
-                 assets_settings: Dict[str, Dict[str, Optional[int]]], api_keys: Dict[str, str], active_api_key: str):
+                 assets_settings: Dict[str, Dict[str, Optional[int]]], api_keys: Dict[str, str], active_api_key: str,
+                 db_host: str, db_user: str, db_password: str, db_name: str):
         super().__init__()
         self.title(APP_NAME)
         self.geometry(f'{1100}x{580}')
@@ -34,7 +36,9 @@ class App(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)
         self.sidebar_frame.grid(row=0, column=0, sticky='nsew')
         self.watchlist_frame.grid(row=0, column=1, sticky='nsew')
-        self.ws_manager = WSManager(self, self.api_keys[active_api_key], watchlist_assets, assets_settings)
+        self.db_manager = DBManager(db_host, db_user, db_password, db_name)
+        self.ws_manager = WSManager(self, self.db_manager, self.api_keys[active_api_key], watchlist_assets,
+                                    assets_settings)
         self.asyncio_tasks_dct = {}
         self.asyncio_task_group = None
 

@@ -2,8 +2,6 @@ import websockets
 import json
 import asyncio
 from typing import Dict, Union, Optional
-import mysql.connector
-from mysql.connector import Error
 from datetime import datetime
 import requests
 from os.path import isfile
@@ -11,7 +9,7 @@ from PIL import Image
 from io import BytesIO
 
 import frontend.main_app
-from config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
+from backend.db_management import DBManager
 
 
 def download_asset_icon(asset_ticker: str, icon_path: str, api_key: str) -> bool:
@@ -44,9 +42,10 @@ class WSManager:
     The class is used to manage websocket connections and provide real-time market data
     """
 
-    def __init__(self, app: 'frontend.main_app.App', api_key: str, watchlist_assets: Dict[str, Dict[str, float]],
-                 assets_settings: Dict[str, Dict[str, Optional[int]]]):
+    def __init__(self, app: 'frontend.main_app.App', db_manager: DBManager, api_key: str,
+                 watchlist_assets: Dict[str, Dict[str, float]], assets_settings: Dict[str, Dict[str, Optional[int]]]):
         self.app = app
+        self.db_manager = db_manager
         self.api_key = api_key
         self.watchlist_assets = watchlist_assets
         self.assets_settings = assets_settings
@@ -110,40 +109,11 @@ class WSManager:
                     self.watchlist_assets[asset]['price'] = price
                     self.watchlist_assets[asset]['change'] = change
                     self.app.update_watchlist_assets(asset)
-                    # Добавление данных в базу данных
-                    self.connect_to_db()
+                    # Inserting data into bd
                     update_time = datetime.now()
                     self.insert_to_history_date(asset, price, update_time, change)
-                    self.close_db_connection()
-
-    def connect_to_db(self):
-        try:
-            self.db_connection = mysql.connector.connect(
-                host=DB_HOST,
-                user=DB_USER,
-                password=DB_PASSWORD,
-                database=DB_NAME
-            )
-            self.db_cursor = self.db_connection.cursor()
-        except Error as e:
-            print(f"Error connecting to MySQL: {e}")
 
     def insert_to_history_date(self, asset_name: str, price: int, update_time: datetime, change: float):
-        if self.db_cursor:
-            # Вставляем новую запись
-            query = "INSERT INTO history_date (asset_name, price, update_time, `change`) VALUES (%s, %s, %s, %s)"
-            values = (asset_name, price, update_time, change)
-            try:
-                self.db_cursor.execute(query, values)
-                self.db_connection.commit()
-                print("Record inserted or updated successfully into history_date table")
-            except Error as e:
-                print(f"Error inserting or updating record: {e}")
-
-    def close_db_connection(self):
-        if self.db_connection and self.db_connection.is_connected():
-            self.db_cursor.close()
-            self.db_connection.close()
-            print("MySQL connection is closed")
-        else:
-            print("No active database connection to close.")
+        query = "INSERT INTO history_data (asset_name, price, update_time, `change`) VALUES (%s, %s, %s, %s)"
+        values = (asset_name, price, update_time, change)
+        self.db_manager.execute_transaction([query], [values])
