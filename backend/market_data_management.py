@@ -108,7 +108,7 @@ class WSManager:
                     change = self.calculate_percentage_change(open_price, price)
                     self.watchlist_assets[asset]['price'] = price
                     self.watchlist_assets[asset]['change'] = change
-                    self.app.update_watchlist_assets(asset)
+                    self.app.update_watchlist_asset(asset)
                     # Inserting data into bd
                     update_time = datetime.now()
                     self.insert_to_history_date(asset, price, update_time, change)

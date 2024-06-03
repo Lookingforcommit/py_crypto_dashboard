@@ -7,6 +7,8 @@ from os import path
 
 import frontend.main_app
 
+MAX_INT = 2147483647
+
 
 def convert_asset_settings_to_str(asset_settings: Dict[str, Optional[int]]) -> Dict[str, str]:
     """
@@ -16,7 +18,7 @@ def convert_asset_settings_to_str(asset_settings: Dict[str, Optional[int]]) -> D
     """
     ans_dct = {}
     for setting in asset_settings:
-        if asset_settings[setting] is not None:
+        if asset_settings[setting] != MAX_INT:
             ans_dct[setting] = str(asset_settings[setting])
         else:
             ans_dct[setting] = 'Max'
@@ -39,7 +41,7 @@ def convert_asset_settings_to_int(asset_settings: Dict[str, str]) -> Optional[Di
             if ans_dct[setting] <= 0:
                 return None
         else:
-            ans_dct[setting] = None
+            ans_dct[setting] = MAX_INT
     return ans_dct
 
 
@@ -100,14 +102,8 @@ class WatchlistFrame(ctk.CTkScrollableFrame):
         asset_shown_data = self.shown_data[asset_ticker]
         asset_settings = self.assets_settings[asset_ticker]
         update = self.watchlist_assets[asset_ticker]
-        if asset_settings['price_rounding'] is None:
-            rounded_price = update['price']
-        else:
-            rounded_price = round(update['price'], asset_settings['price_rounding'])
-        if asset_settings['change_rounding'] is None:
-            rounded_change = update['change']
-        else:
-            rounded_change = round(update['change'], asset_settings['change_rounding'])
+        rounded_price = round(update['price'], asset_settings['price_rounding'])
+        rounded_change = round(update['change'], asset_settings['change_rounding'])
         if rounded_price != asset_shown_data['price'] or rounded_change != asset_shown_data['change']:
             asset_shown_data['price'] = rounded_price
             asset_shown_data['change'] = rounded_change
@@ -121,6 +117,7 @@ class WatchlistFrame(ctk.CTkScrollableFrame):
         self.asset_frames.pop(asset_ticker)
         self.shown_data.pop(asset_ticker)
         self.watchlist_assets.pop(asset_ticker)
+        self.app.delete_watchlist_asset(asset_ticker)
         self.app.stop_ws()
         self.app.start_ws()
 
@@ -289,6 +286,7 @@ class AssetSettingsWindow(ctk.CTkToplevel):
             for setting in new_asset_settings:
                 self.asset_settings[setting] = new_asset_settings[setting]
             self.shown_asset_settings = new_shown_asset_settings
+            self.app.update_watchlist_asset_settings(self.asset_ticker)
             self.withdraw()
         else:
             self.error_message.set('Incorrect decimal places value')

@@ -9,6 +9,5 @@ if __name__ == "__main__":
     assets_settings = {}
     api_keys = {'Name1': API_KEY}
     active_api_key = 'Name1'
-    app = App(valid_assets, watchlist_assets, assets_settings, api_keys, active_api_key, DB_HOST, DB_USER,
-              DB_PASSWORD, DB_NAME)
+    app = App(valid_assets, api_keys, active_api_key, DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)
     asyncio.run(app.run())
