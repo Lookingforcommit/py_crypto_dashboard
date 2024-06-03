@@ -56,7 +56,7 @@ class App(ctk.CTk):
         Adds a new asset to the watchlist and requests market data for it
         :param asset_ticker: asset ticker
         """
-        query = "INSERT INTO watchlist_assets (change_decimals, price_decimals, asset_ticker) VALUES (%s, %s, %s)"
+        query = "INSERT INTO watchlist_assets (price_decimals, change_decimals, asset_ticker) VALUES (%s, %s, %s)"
         values = (MAX_INT, MAX_INT, asset_ticker)
         self.db_manager.execute_transaction([query], [values])
         self.watchlist_assets[asset_ticker] = {'open_price': 0, 'price': 0, 'change': 0}

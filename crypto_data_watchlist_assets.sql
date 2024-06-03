@@ -24,8 +24,8 @@ DROP TABLE IF EXISTS `watchlist_assets`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `watchlist_assets` (
   `asset_ticker` char(100) NOT NULL,
-  `change_decimals` int DEFAULT NULL,
   `price_decimals` int DEFAULT NULL,
+  `change_decimals` int DEFAULT NULL,
   PRIMARY KEY (`asset_ticker`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

@@ -23,10 +23,10 @@ DROP TABLE IF EXISTS `api_keys`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `api_keys` (
-  `id_key` int NOT NULL AUTO_INCREMENT,
-  `name` char(200) DEFAULT NULL,
+  `name` char(200) NOT NULL,
   `key` varchar(150) DEFAULT NULL,
-  PRIMARY KEY (`id_key`)
+  `active` bool DEFAULT FALSE,
+  PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

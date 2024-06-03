@@ -114,6 +114,6 @@ class WSManager:
                     self.insert_to_history_date(asset, price, update_time, change)
 
     def insert_to_history_date(self, asset_name: str, price: int, update_time: datetime, change: float):
-        query = "INSERT INTO history_data (asset_name, price, update_time, `change`) VALUES (%s, %s, %s, %s)"
-        values = (asset_name, price, update_time, change)
+        query = "INSERT INTO history_data (asset_name, update_time, price, `change`) VALUES (%s, %s, %s, %s)"
+        values = (asset_name, update_time, price, change)
         self.db_manager.execute_transaction([query], [values])

@@ -25,8 +25,8 @@ DROP TABLE IF EXISTS `history_data`;
 CREATE TABLE `history_data` (
   `update_id` int NOT NULL AUTO_INCREMENT,
   `asset_name` char(100) DEFAULT NULL,
-  `price` double DEFAULT NULL,
   `update_time` datetime DEFAULT NULL,
+  `price` double DEFAULT NULL,
   `change` double DEFAULT NULL,
   PRIMARY KEY (`update_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
