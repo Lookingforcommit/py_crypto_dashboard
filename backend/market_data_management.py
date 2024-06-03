@@ -114,6 +114,21 @@ class WSManager:
                     self.insert_to_history_date(asset, price, update_time, change)
 
     def insert_to_history_date(self, asset_name: str, price: int, update_time: datetime, change: float):
-        query = "INSERT INTO history_data (asset_name, update_time, price, `change`) VALUES (%s, %s, %s, %s)"
+        query = "INSERT INTO history_date (asset_name, update_time, price, `change`) VALUES (%s, %s, %s, %s)"
         values = (asset_name, update_time, price, change)
         self.db_manager.execute_transaction([query], [values])
+
+    def get_history_data(self, asset_name: str, start_date: datetime, end_date: datetime) -> List[
+        Dict[str, Union[str, int, float]]]:
+        """
+        Get the history data for a specific asset within a given date range
+        :param asset_name: name of the asset
+        :param start_date: start date of the range
+        :param end_date: end date of the range
+        :return: list of history data
+        """
+        query = "SELECT * FROM history_date WHERE asset_name = %s AND update_time BETWEEN %s AND %s"
+        values = (asset_name, start_date, end_date)
+        result = self.db_manager.execute_query(query, values)
+        return [dict(row) for row in result]
+
