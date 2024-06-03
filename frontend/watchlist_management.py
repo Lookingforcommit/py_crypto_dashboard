@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from tkinter import StringVar, DoubleVar
 from PIL import Image
-from typing import Dict, Optional
+from typing import Dict, DefaultDict, Optional
 from backend.market_data_management import download_asset_icon
 from os import path
 
@@ -51,7 +51,7 @@ class WatchlistFrame(ctk.CTkScrollableFrame):
     """
 
     def __init__(self, master: 'frontend.main_app.App', watchlist_assets: Dict[str, Dict[str, float]],
-                 active_api_key: StringVar, api_keys: Dict[str, str],
+                 active_api_key: StringVar, api_keys: DefaultDict[str, str],
                  assets_settings: Dict[str, Dict[str, Optional[int]]]):
         super().__init__(master, fg_color='transparent')
         self.app = master
@@ -134,8 +134,7 @@ class AssetContainer:
     ASSETS_ICON_PATH = f'{RESOURCES_DIR}/asset_icons'
 
     def __init__(self, master: WatchlistFrame, app: 'frontend.main_app.App', asset_ticker: str, price: float,
-                 change: float,
-                 asset_settings: Dict[str, Optional[int]], row: int, api_keys: Dict[str, str],
+                 change: float, asset_settings: Dict[str, Optional[int]], row: int, api_keys: DefaultDict[str, str],
                  active_api_key: StringVar):
         self.watchlist_frame = master
         self.app = app

@@ -1,7 +1,8 @@
 import asyncio
 import customtkinter as ctk
 from tkinter import StringVar
-from typing import Dict, Set
+from typing import Set
+from collections import defaultdict
 
 from backend.market_data_management import WSManager
 from backend.db_management import DBManager
@@ -17,22 +18,23 @@ class App(ctk.CTk):
     The main app class which is used for general configuration, application layout and data management
     """
 
-    def __init__(self, valid_assets: Set[str], api_keys: Dict[str, str], active_api_key: str,
-                 db_host: str, db_user: str, db_password: str, db_name: str):
+    def __init__(self, valid_assets: Set[str], db_host: str, db_user: str, db_password: str, db_name: str):
         super().__init__()
         self.title(APP_NAME)
         self.geometry(f'{1100}x{580}')
-        self.db_manager = DBManager(db_host, db_user, db_password, db_name)
         self.valid_assets = valid_assets
         self.watchlist_assets = {}
         self.assets_settings = {}
-        self.load_watchlist_assets()
-        self.api_keys = api_keys  # {name: key}
-        self.active_api_key = StringVar(self, active_api_key)  # name
-        self.ws_manager = WSManager(self, self.db_manager, self.api_keys[active_api_key], self.watchlist_assets,
-                                    self.assets_settings)
+        self.api_keys = defaultdict()  # {name: key}
+        self.api_keys.setdefault('')
+        self.active_api_key = StringVar(self, '')  # name
         self.asyncio_tasks_dct = {}
         self.asyncio_task_group = None
+        self.db_manager = DBManager(db_host, db_user, db_password, db_name)
+        self.load_watchlist_assets()
+        self.load_api_keys()
+        self.ws_manager = WSManager(self, self.db_manager, self.api_keys[self.active_api_key.get()],
+                                    self.watchlist_assets, self.assets_settings)
         self.watchlist_frame = WatchlistFrame(self, self.watchlist_assets, self.active_api_key, self.api_keys,
                                               self.assets_settings)
         self.sidebar_frame = SidebarMenu(self, self.valid_assets, self.watchlist_assets, self.api_keys,
@@ -87,21 +89,46 @@ class App(ctk.CTk):
         values = (asset_ticker,)
         self.db_manager.execute_transaction([query], [values])
 
-    def change_active_api_key(self) -> None:
+    def load_api_keys(self) -> None:
+        query = "SELECT * FROM api_keys"
+        values = ()
+        res = self.db_manager.execute_transaction([query], [values])
+        for row in res:
+            self.api_keys[row[0]] = row[1]
+            if row[2]:
+                self.active_api_key.set(row[0])
+
+    def add_api_key(self, api_key: str) -> None:
+        query = "INSERT INTO api_keys (name, `key`) VALUES (%s, %s)"
+        values = (api_key, self.api_keys[api_key])
+        self.db_manager.execute_transaction([query], [values])
+
+    def change_active_api_key(self, new_val: str) -> None:
         """
         Changes the active api key for websocket manager
         """
+        upd_query = "UPDATE api_keys SET active = %s WHERE name = %s"
+        values1 = (False, self.active_api_key.get())
+        values2 = (True, new_val)
+        self.db_manager.execute_transaction([upd_query, upd_query], [values1, values2])
+        self.active_api_key.set(new_val)
         self.stop_ws()
         if self.active_api_key.get():
             self.ws_manager.api_key = self.api_keys[self.active_api_key.get()]
             self.start_ws()
 
+    def delete_api_key(self, api_key: str) -> None:
+        query = "DELETE FROM api_keys WHERE name = %s"
+        values = (api_key,)
+        self.db_manager.execute_transaction([query], [values])
+
     def stop_ws(self) -> None:
         """
         Stops an active websocket connection
         """
-        self.asyncio_tasks_dct['ws_task'].cancel()
-        self.ws_manager.stop_active_ws()
+        if 'ws_task' in self.asyncio_tasks_dct:
+            self.asyncio_tasks_dct['ws_task'].cancel()
+            self.ws_manager.stop_active_ws()
 
     def start_ws(self) -> None:
         """
@@ -126,4 +153,5 @@ class App(ctk.CTk):
             self.asyncio_task_group = tg
             ui_task = tg.create_task(self.update_ui())
             self.asyncio_tasks_dct['ui_task'] = ui_task
-            self.start_ws()
+            if self.active_api_key.get():
+                self.start_ws()

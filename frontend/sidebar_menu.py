@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from tkinter import StringVar
-from typing import Dict, Set, Optional
+from typing import Dict, DefaultDict, Set, Optional
 
 import frontend.main_app
 from frontend.api_keys_management import APIKeysMenu
@@ -13,11 +13,12 @@ class NewAssetWindow(ctk.CTkToplevel):
     WINDOW_NAME = 'Add asset'
 
     def __init__(self, master: 'frontend.main_app.App', valid_assets: Set[str],
-                 watchlist_assets: Dict[str, Dict[str, float]]):
+                 watchlist_assets: Dict[str, Dict[str, float]], active_api_key: StringVar):
         super().__init__(master)
         self.title(self.WINDOW_NAME)
         self.valid_assets = valid_assets
         self.watchlist_assets = watchlist_assets
+        self.active_api_key = active_api_key
         self.app = master
         self.geometry('500x150')
         self.grid_columnconfigure(0, weight=1)
@@ -35,7 +36,9 @@ class NewAssetWindow(ctk.CTkToplevel):
         Validate asset and add it to the watchlist
         """
         new_asset = self.new_asset.get()
-        if new_asset in self.watchlist_assets:
+        if not self.active_api_key.get():
+            self.error_message.set('No API key selected')
+        elif new_asset in self.watchlist_assets:
             self.error_message.set('The asset is already present in the watchlist')
         elif new_asset not in self.valid_assets:
             self.error_message.set('Incorrect asset ticker')
@@ -50,7 +53,8 @@ class SidebarMenu(ctk.CTkFrame):
     """
 
     def __init__(self, master: 'frontend.main_app.App', valid_assets: Set[str],
-                 watchlist_assets: Dict[str, Dict[str, float]], api_keys: Dict[str, str], active_api_key: StringVar):
+                 watchlist_assets: Dict[str, Dict[str, float]], api_keys: DefaultDict[str, str],
+                 active_api_key: StringVar):
         super().__init__(master, width=140, corner_radius=0)
         self.app = master
         self.valid_assets = valid_assets
@@ -95,7 +99,8 @@ class SidebarMenu(ctk.CTkFrame):
         """
         # noinspection PyTypeChecker
         if self.new_asset_window is None or not self.new_asset_window.winfo_exists():
-            self.new_asset_window = NewAssetWindow(self.app, self.valid_assets, self.watchlist_assets)
+            self.new_asset_window = NewAssetWindow(self.app, self.valid_assets, self.watchlist_assets,
+                                                   self.active_api_key)
         self.new_asset_window.deiconify()
         self.after(10, lambda: self.new_asset_window.focus_force())
 
