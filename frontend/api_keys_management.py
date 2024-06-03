@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from tkinter import StringVar, IntVar
 from PIL import Image
-from typing import Dict, Optional
+from typing import Dict, DefaultDict, Optional
 from os import path
 
 import frontend.main_app
@@ -12,16 +12,17 @@ class APIKeysMenu(ctk.CTkToplevel):
     A CTkToplevel window that allows the user to manage his API keys
     """
     WINDOW_NAME = 'API keys management'
-    def __init__(self, master: 'frontend.main_app.SidebarMenu', app: 'frontend.main_app.App', api_keys: Dict[str, str],
-                 active_api_key: StringVar):
+    def __init__(self, master: 'frontend.main_app.SidebarMenu', app: 'frontend.main_app.App',
+                 api_keys: DefaultDict[str, str], active_api_key: StringVar):
         super().__init__(master)
+        self.app = app
         self.title(self.WINDOW_NAME)
         self.geometry(f"{1100}x{580}")
         self.sidebar_menu = master
         self.api_keys = api_keys
         self.active_api_key = active_api_key
-        self.api_keys_table = APIKeysTable(self, app, self.api_keys, self.active_api_key)
-        self.new_api_key_frame = NewAPIKeyFrame(self, self.api_keys_table, self.api_keys)
+        self.api_keys_table = APIKeysTable(self, self.app, self.api_keys, self.active_api_key)
+        self.new_api_key_frame = NewAPIKeyFrame(self, self.app, self.api_keys_table, self.api_keys)
         self.columnconfigure(0, weight=1)
         self.new_api_key_frame.grid(row=0, column=0, sticky='ew', padx=10, pady=(10, 0))
         self.api_keys_table.grid(row=1, column=0, sticky='ew')
@@ -32,7 +33,7 @@ class APIKeysTable(ctk.CTkScrollableFrame):
     The frame holds the API keys table and allows to change the active key or delete selected keys
     """
     #  TODO: Add functionality to validate an API key
-    def __init__(self, master: APIKeysMenu, app: 'frontend.main_app.App', api_keys: Dict[str, str],
+    def __init__(self, master: APIKeysMenu, app: 'frontend.main_app.App', api_keys: DefaultDict[str, str],
                  active_api_key: StringVar):
         super().__init__(master, fg_color='transparent')
         self.app = app
@@ -44,7 +45,8 @@ class APIKeysTable(ctk.CTkScrollableFrame):
         self._create_header()
         self.used_rows = 2
         for key_name in self.api_keys:
-            self.add_api_key(key_name)
+            if key_name:
+                self.add_api_key(key_name)
 
     def _create_header(self) -> None:
         """
@@ -75,18 +77,16 @@ class APIKeysTable(ctk.CTkScrollableFrame):
         """
         self.api_keys.pop(key_name)
         self.api_keys_frames.pop(key_name)
+        self.app.delete_api_key(key_name)
         if key_name == self.active_api_key.get():
-            self.change_active_api_key(None)
+            self.change_active_api_key('')
 
-    def change_active_api_key(self, new_val: Optional[str]) -> None:
+    def change_active_api_key(self, new_val: str) -> None:
         """
         Change the active api key
         :param new_val: new active api key name
         """
-        if not new_val:
-            new_val = ''
-        self.active_api_key.set(new_val)
-        self.app.change_active_api_key()
+        self.app.change_active_api_key(new_val)
 
 
 class APIKeyContainer:
@@ -167,8 +167,10 @@ class NewAPIKeyFrame(ctk.CTkFrame):
     """
     The class allows user to add an API key
     """
-    def __init__(self, master: APIKeysMenu, api_keys_table: APIKeysTable, api_keys: Dict[str, str]):
+    def __init__(self, master: APIKeysMenu, app: 'frontend.main_app.App', api_keys_table: APIKeysTable,
+                 api_keys: DefaultDict[str, str]):
         super().__init__(master, fg_color='transparent')
+        self.app = app
         self.api_keys_table = api_keys_table
         self.api_keys = api_keys
         self.key_name_var = StringVar(self, value='Key name')
@@ -194,4 +196,5 @@ class NewAPIKeyFrame(ctk.CTkFrame):
         else:
             self.api_keys[self.key_name_var.get()] = self.key_var.get()
             self.api_keys_table.add_api_key(self.key_name_var.get())
+            self.app.add_api_key(self.key_name_var.get())
             self.error_message.set('')
