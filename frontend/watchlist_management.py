@@ -13,8 +13,6 @@ MAX_INT = 2147483647
 def convert_asset_settings_to_str(asset_settings: Dict[str, Optional[int]]) -> Dict[str, str]:
     """
     Converts a dictionary of asset settings to a dictionary of strings for displaying
-    :param asset_settings: initial settings dict
-    :return: processed settings dict
     """
     ans_dct = {}
     for setting in asset_settings:
@@ -28,7 +26,6 @@ def convert_asset_settings_to_str(asset_settings: Dict[str, Optional[int]]) -> D
 def convert_asset_settings_to_int(asset_settings: Dict[str, str]) -> Optional[Dict[str, Optional[int]]]:
     """
     Converts a dictionary of asset settings to a dictionary of ints for calculating
-    :param asset_settings: initial settings dict
     :return: processed settings dict or None if asset settings are invalid
     """
     ans_dct = {}
@@ -67,9 +64,6 @@ class WatchlistFrame(ctk.CTkScrollableFrame):
             self.add_asset(asset_ticker)
 
     def _create_header(self) -> None:
-        """
-        Create a header for the watchlist table
-        """
         self.grid_columnconfigure((1, 2, 3), weight=1)
         asset = ctk.CTkLabel(self, text='Asset', font=('Helvetica', 14))
         price = ctk.CTkLabel(self, text='Price', font=('Helvetica', 14))
@@ -79,10 +73,6 @@ class WatchlistFrame(ctk.CTkScrollableFrame):
         change.grid(row=0, column=3, sticky='w')
 
     def add_asset(self, asset_ticker: str) -> None:
-        """
-        Add an asset to the watchlist table
-        :param asset_ticker: asset ticker
-        """
         self.shown_data[asset_ticker] = {}
         self.shown_data[asset_ticker]['price'] = self.watchlist_assets[asset_ticker]['price']
         self.shown_data[asset_ticker]['change'] = self.watchlist_assets[asset_ticker]['change']
@@ -96,7 +86,6 @@ class WatchlistFrame(ctk.CTkScrollableFrame):
     def update_asset(self, asset_ticker: str) -> None:
         """
         Process the asset data update and display it in the interface
-        :param asset_ticker: asset ticker
         """
         asset_frame = self.asset_frames[asset_ticker]
         asset_shown_data = self.shown_data[asset_ticker]
@@ -112,7 +101,6 @@ class WatchlistFrame(ctk.CTkScrollableFrame):
     def delete_asset(self, asset_ticker: str) -> None:
         """
         Process the user-triggered asset removal
-        :param asset_ticker: asset ticker
         """
         self.asset_frames.pop(asset_ticker)
         self.shown_data.pop(asset_ticker)
@@ -159,9 +147,6 @@ class AssetContainer:
         self.init_frames()
 
     def init_frames(self) -> None:
-        """
-        Initialize the frames and place them in the watchlist frame
-        """
         image = ctk.CTkImage(light_image=Image.open(self.icon_path),
                              dark_image=Image.open(self.icon_path),
                              size=(30, 30))
@@ -194,7 +179,6 @@ class AssetContainer:
     def update_data(self, update: Dict[str, float]) -> None:
         """
         Update the asset pricing data and change the textcolor if needed in the UI
-        :param update: dict containing new pricing data
         """
         new_price, new_change = update['price'], update['change']
         self.price_var.set(new_price)
@@ -253,9 +237,6 @@ class AssetSettingsWindow(ctk.CTkToplevel):
         self.init_frames()
 
     def init_frames(self):
-        """
-        Initialize the frames and place them in the settings frame
-        """
         self.price_rounding_label = ctk.CTkLabel(self, text='Price decimal places', font=('Helvetica', 14))
         self.change_rounding_label = ctk.CTkLabel(self, text='Price change decimal places',
                                                   font=('Helvetica', 14))
@@ -272,9 +253,6 @@ class AssetSettingsWindow(ctk.CTkToplevel):
         self.error_label.grid(row=3, column=0, columnspan=2)
 
     def save_settings(self):
-        """
-        Validate and save new asset settings
-        """
         new_shown_asset_settings = {
             'price_rounding': self.price_rounding_var.get(),
             'change_rounding': self.change_rounding_var.get()

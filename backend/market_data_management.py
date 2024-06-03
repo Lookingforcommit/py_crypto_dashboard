@@ -1,7 +1,7 @@
 import websockets
 import json
 import asyncio
-from typing import Dict, Union, Optional
+from typing import Dict, Union, Optional, List
 from datetime import datetime
 import requests
 from os.path import isfile
@@ -14,7 +14,7 @@ from backend.db_management import DBManager
 
 def download_asset_icon(asset_ticker: str, icon_path: str, api_key: str) -> bool:
     """
-    Download the asset icon using the CryptoCompare API and remove the white color
+    Download the asset icon using the CryptoCompare API
     :param asset_ticker: asset ticker
     :param icon_path: path to save the downloaded icon
     :param api_key: CryptoCompare API key
@@ -37,6 +37,33 @@ def download_asset_icon(asset_ticker: str, icon_path: str, api_key: str) -> bool
         return True
 
 
+def insert_to_historical_data(db_manager: DBManager, asset_name: str, price: int, update_time: datetime, change: float):
+    """
+    Insert a single asset update to the historical data table
+    """
+    query = "INSERT INTO history_data (asset_name, update_time, price, `change`) VALUES (%s, %s, %s, %s)"
+    values = (asset_name, update_time, price, change)
+    db_manager.execute_transaction([query], [values])
+
+
+def get_historical_data(db_manager: DBManager, asset_name: str, start_date: datetime, end_date: datetime) -> List[
+                        Dict[str, Union[str, int, float]]]:
+    """
+    Get the historical data for a specific asset within a given date range
+    """
+    query = "SELECT * FROM history_data WHERE asset_name = %s AND update_time BETWEEN %s AND %s"
+    values = (asset_name, start_date, end_date)
+    result = db_manager.execute_transaction([query], [values])
+    for i in range(len(result)):
+        result[i] = {
+            'asset_name': result[i][1],
+            'update_time': result[i][2],
+            'price': result[i][3],
+            'change': result[i][4]
+        }
+    return result
+
+
 class WSManager:
     """
     The class is used to manage websocket connections and provide real-time market data
@@ -57,15 +84,12 @@ class WSManager:
     def calculate_percentage_change(open_price: float, cur_price: float) -> float:
         """
         Calculate the price percentage change since the beginning of the trade day
-        :param open_price: open price for the asset
-        :param cur_price: current price for the asset
-        :return: the price percentage change
         """
         return ((cur_price - open_price) / open_price) * 100
 
     async def ws_subscribe_to_agg_index(self) -> None:
         """
-        Subscribe to the aggregated index channel\n
+        Subscribe to the aggregated index channel
         Docs reference: https://min-api.cryptocompare.com/documentation/websockets?key=Channels&cat=AggregateIndex
         """
         url = "wss://streamer.cryptocompare.com/v2?api_key=" + self.api_key
@@ -85,9 +109,6 @@ class WSManager:
                     continue
 
     def stop_active_ws(self) -> None:
-        """
-        Stop the active websocket connection
-        """
         if self.active_ws is not None:
             asyncio.create_task(self.active_ws.close())
             self.active_ws = None
@@ -111,24 +132,4 @@ class WSManager:
                     self.app.update_watchlist_asset(asset)
                     # Inserting data into bd
                     update_time = datetime.now()
-                    self.insert_to_history_date(asset, price, update_time, change)
-
-    def insert_to_history_date(self, asset_name: str, price: int, update_time: datetime, change: float):
-        query = "INSERT INTO history_date (asset_name, update_time, price, `change`) VALUES (%s, %s, %s, %s)"
-        values = (asset_name, update_time, price, change)
-        self.db_manager.execute_transaction([query], [values])
-
-    def get_history_data(self, asset_name: str, start_date: datetime, end_date: datetime) -> List[
-        Dict[str, Union[str, int, float]]]:
-        """
-        Get the history data for a specific asset within a given date range
-        :param asset_name: name of the asset
-        :param start_date: start date of the range
-        :param end_date: end date of the range
-        :return: list of history data
-        """
-        query = "SELECT * FROM history_date WHERE asset_name = %s AND update_time BETWEEN %s AND %s"
-        values = (asset_name, start_date, end_date)
-        result = self.db_manager.execute_query(query, values)
-        return [dict(row) for row in result]
-
+                    insert_to_historical_data(self.db_manager, asset, price, update_time, change)

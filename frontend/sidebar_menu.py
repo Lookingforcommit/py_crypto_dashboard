@@ -66,9 +66,6 @@ class SidebarMenu(ctk.CTkFrame):
         self.init_frames()
 
     def init_frames(self) -> None:
-        """
-        Initialize the frames and place them in the sidebar menu
-        """
         logo_label = ctk.CTkLabel(self, text=frontend.main_app.APP_NAME, font=ctk.CTkFont(size=20, weight='bold'))
         new_asset_button = ctk.CTkButton(self, height=40, text='Add asset', command=self.open_new_asset_menu)
         appearance_mode_label = ctk.CTkLabel(self, text='Theme settings:')
@@ -87,10 +84,6 @@ class SidebarMenu(ctk.CTkFrame):
 
     @staticmethod
     def change_appearance_mode(new_appearance_mode: str) -> None:
-        """
-        Change the app theme
-        :param new_appearance_mode: new theme
-        """
         ctk.set_appearance_mode(new_appearance_mode)
 
     def open_new_asset_menu(self) -> None:

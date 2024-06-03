@@ -11,8 +11,7 @@ class DBManager:
         self.db_password = db_password
         self.db_name = db_name
 
-    def connect_to_db(self) -> Tuple[
-        PooledMySQLConnection | MySQLConnectionAbstract, MySQLCursorAbstract]:
+    def connect_to_db(self) -> Tuple[PooledMySQLConnection | MySQLConnectionAbstract, MySQLCursorAbstract]:
         try:
             db_connection = connector.connect(
                 host=self.db_host,
