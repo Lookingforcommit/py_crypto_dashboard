@@ -96,7 +96,10 @@ class WSManager:
         """
         Create the database and tables
         """
-        self.db_manager.create_db('crypto_data')
+        # Check if the database exists, if not, create it
+        if not self.db_manager.check_db_exists('crypto_data'):
+            self.db_manager.create_db('crypto_data')
+
         self.db_manager.create_table('api_keys', [
             'id_key int PRIMARY KEY',
             'name char(200)',
