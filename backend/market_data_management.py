@@ -127,3 +127,4 @@ class WSManager:
                     # Inserting data into bd
                     update_time = datetime.now()
                     insert_to_historical_data(self.db_manager, asset, price, update_time, change)
+                    
