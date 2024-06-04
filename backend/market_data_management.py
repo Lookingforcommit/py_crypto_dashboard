@@ -92,6 +92,30 @@ class WSManager:
             asyncio.create_task(self.active_ws.close())
             self.active_ws = None
 
+    def create_db_and_tables(self):
+        """
+        Create the database and tables
+        """
+        self.db_manager.create_db('crypto_data')
+        self.db_manager.create_table('api_keys', [
+            'id_key int PRIMARY KEY',
+            'name char(200)',
+            'key varchar(150)'
+        ])
+        self.db_manager.create_table('history_data', [
+            'update_id int PRIMARY KEY',
+            'asset_name char(100)',
+            'price float',
+            'update_time datetime',
+            'change float'
+        ])
+        self.db_manager.create_table('watchlist_assets', [
+            'asset_ticker char(100) PRIMARY KEY',
+            'change_decimals int',
+            'price_decimals int'
+        ])
+        self.db_manager.connect_to_db('crypto_data')
+
     def process_ws_agg_idx_update(self, update: Dict[str, Union[str, int, float]]) -> None:
         """
         Process the websocket message data and update the market data
