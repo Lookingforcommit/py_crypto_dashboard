@@ -1,7 +1,7 @@
 import websockets
 import json
 import asyncio
-from typing import Dict, Union, Optional, List
+from typing import Dict, Union, Optional, List, Tuple
 from datetime import datetime
 import requests
 from os.path import isfile
@@ -41,26 +41,20 @@ def insert_to_historical_data(db_manager: DBManager, asset_name: str, price: int
     """
     Insert a single asset update to the historical data table
     """
-    query = "INSERT INTO history_data (asset_name, update_time, price, `change`) VALUES (%s, %s, %s, %s)"
+    query = "INSERT INTO historical_data (asset_name, update_time, price, `change`) VALUES (%s, %s, %s, %s)"
     values = (asset_name, update_time, price, change)
     db_manager.execute_transaction([query], [values])
 
 
-def get_historical_data(db_manager: DBManager, asset_name: str, start_date: datetime, end_date: datetime) -> List[
-                        Dict[str, Union[str, int, float]]]:
+def get_historical_data(db_manager: DBManager, asset_name: str, start_date: datetime,
+                        end_date: datetime) -> List[Tuple[Union[str, datetime, float]]]:
     """
     Get the historical data for a specific asset within a given date range
     """
-    query = "SELECT * FROM history_data WHERE asset_name = %s AND update_time BETWEEN %s AND %s"
+    query = "SELECT * FROM historical_data WHERE asset_name = %s AND update_time BETWEEN %s AND %s"
     values = (asset_name, start_date, end_date)
     result = db_manager.execute_transaction([query], [values])
-    for i in range(len(result)):
-        result[i] = {
-            'asset_name': result[i][1],
-            'update_time': result[i][2],
-            'price': result[i][3],
-            'change': result[i][4]
-        }
+    result = [val[1:] for val in result]
     return result
 
 

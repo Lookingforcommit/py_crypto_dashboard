@@ -21,7 +21,7 @@ class NewAssetWindow(ctk.CTkToplevel):
         self.active_api_key = active_api_key
         self.app = master
         self.geometry('500x150')
-        self.grid_columnconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
         self.error_message = StringVar(self, value='')
         self.new_asset = StringVar(self, value='BTC')
         self.error_label = ctk.CTkLabel(self, text_color='red', textvariable=self.error_message, font=('Helvetica', 14))

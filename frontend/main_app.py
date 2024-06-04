@@ -1,12 +1,13 @@
 import asyncio
 import customtkinter as ctk
 from tkinter import StringVar
-from typing import Set
+from typing import Set, List, Union, Tuple
 from collections import defaultdict
+from datetime import datetime
 
-from backend.market_data_management import WSManager
-from backend.db_management import DBManager
-from frontend.watchlist_management import WatchlistFrame, MAX_INT
+from backend.market_data_management import WSManager, get_historical_data
+from backend.db_management import DBManager, MAX_INT
+from frontend.watchlist_management import WatchlistFrame
 from frontend.sidebar_menu import SidebarMenu
 
 APP_NAME = 'PyCryptoDashboard'
@@ -39,8 +40,8 @@ class App(ctk.CTk):
                                               self.assets_settings)
         self.sidebar_frame = SidebarMenu(self, self.valid_assets, self.watchlist_assets, self.api_keys,
                                          self.active_api_key)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(0, weight=1)
         self.sidebar_frame.grid(row=0, column=0, sticky='nsew')
         self.watchlist_frame.grid(row=0, column=1, sticky='nsew')
 
@@ -132,6 +133,11 @@ class App(ctk.CTk):
         query = "DELETE FROM api_keys WHERE name = %s"
         values = (api_key,)
         self.db_manager.execute_transaction([query], [values])
+
+    def get_historical_data(self, asset_ticker: str, start_date: datetime,
+                            end_date: datetime) -> List[Tuple[Union[str, datetime, float]]]:
+        res = get_historical_data(self.db_manager, asset_ticker, start_date, end_date)
+        return res
 
     def stop_ws(self) -> None:
         if 'ws_task' in self.asyncio_tasks_dct:

@@ -1,13 +1,13 @@
 import customtkinter as ctk
 from tkinter import StringVar, DoubleVar
 from PIL import Image
-from typing import Dict, DefaultDict, Optional
-from backend.market_data_management import download_asset_icon
+from typing import Dict, DefaultDict, Optional, Tuple, Callable
 from os import path
 
 import frontend.main_app
-
-MAX_INT = 2147483647
+from frontend.historical_data_viewer import HistoricalDataMenu
+from backend.db_management import MAX_INT
+from backend.market_data_management import download_asset_icon
 
 
 def convert_asset_settings_to_str(asset_settings: Dict[str, Optional[int]]) -> Dict[str, str]:
@@ -64,7 +64,7 @@ class WatchlistFrame(ctk.CTkScrollableFrame):
             self.add_asset(asset_ticker)
 
     def _create_header(self) -> None:
-        self.grid_columnconfigure((1, 2, 3), weight=1)
+        self.columnconfigure((1, 2, 3), weight=1)
         asset = ctk.CTkLabel(self, text='Asset', font=('Helvetica', 14))
         price = ctk.CTkLabel(self, text='Price', font=('Helvetica', 14))
         change = ctk.CTkLabel(self, text='Price change', font=('Helvetica', 14))
@@ -119,6 +119,8 @@ class AssetContainer:
     DELETE_ICON_WHITE_PATH = f'{RESOURCES_DIR}/delete_icon_white.png'
     SETTINGS_ICON_BLACK_PATH = f'{RESOURCES_DIR}/asset_settings_icon_black.png'
     SETTINGS_ICON_WHITE_PATH = f'{RESOURCES_DIR}/asset_settings_icon_white.png'
+    HISTORICAL_DATA_ICON_BLACK_PATH = f'{RESOURCES_DIR}/historical_data_black.png'
+    HISTORICAL_DATA_ICON_WHITE_PATH = f'{RESOURCES_DIR}/historical_data_white.png'
     ASSETS_ICON_PATH = f'{RESOURCES_DIR}/asset_icons'
 
     def __init__(self, master: WatchlistFrame, app: 'frontend.main_app.App', asset_ticker: str, price: float,
@@ -138,18 +140,32 @@ class AssetContainer:
         self.change_label: Optional[ctk.CTkLabel] = None
         self.price_label: Optional[ctk.CTkLabel] = None
         self.asset_ticker_label = None
-        self.asset_settings_window: Optional[ctk.CTkLabel] = None
+        self.asset_settings_window: Optional[ctk.CTkToplevel] = None
         self.settings_button = None
+        self.historical_data_window: Optional[ctk.CTkToplevel] = None
+        self.historical_data_button = None
         if download_asset_icon(self.asset_ticker, icon_path, api_keys[active_api_key.get()]):
             self.icon_path = icon_path
         else:
             self.icon_path = error_icon_path
         self.init_frames()
 
+    @staticmethod
+    def generate_ctk_image(light_image_path: str, dark_image_path: str, size: Tuple[int, int]) -> ctk.CTkImage:
+        img = ctk.CTkImage(light_image=Image.open(light_image_path),
+                           dark_image=Image.open(dark_image_path),
+                           size=size)
+        return img
+
+    def generate_button(self, master, light_image_path: str, black_image_path: str, command: Callable, width: int = 30,
+                        height: int = 30, text: str = '', fg_color: str = 'transparent', hover_color: str = 'grey'):
+        image = self.generate_ctk_image(light_image_path, black_image_path, (width, height))
+        button = ctk.CTkButton(master, text=text, width=width, height=height, image=image, command=command,
+                               fg_color=fg_color, hover_color=hover_color)
+        return button
+
     def init_frames(self) -> None:
-        image = ctk.CTkImage(light_image=Image.open(self.icon_path),
-                             dark_image=Image.open(self.icon_path),
-                             size=(30, 30))
+        image = self.generate_ctk_image(self.icon_path, self.icon_path, (30, 30))
         self.asset_image = ctk.CTkLabel(self.watchlist_frame, image=image, text='')
         self.asset_ticker_label = ctk.CTkLabel(self.watchlist_frame, text=self.asset_ticker, font=('Helvetica', 14),
                                                anchor='w')
@@ -158,23 +174,20 @@ class AssetContainer:
                                         text_color=color, anchor='e')
         self.change_label = ctk.CTkLabel(self.watchlist_frame, textvariable=self.change_var, font=('Helvetica', 14),
                                          text_color=color, anchor='e')
-        settings_image = ctk.CTkImage(light_image=Image.open(self.SETTINGS_ICON_BLACK_PATH),
-                                      dark_image=Image.open(self.SETTINGS_ICON_WHITE_PATH),
-                                      size=(30, 30))
-        self.settings_button = ctk.CTkButton(self.watchlist_frame, text='', width=30, height=30, image=settings_image,
-                                             command=self.open_settings_window, fg_color='transparent',
-                                             hover_color='grey')
-        delete_image = ctk.CTkImage(light_image=Image.open(self.DELETE_ICON_BLACK_PATH),
-                                    dark_image=Image.open(self.DELETE_ICON_WHITE_PATH),
-                                    size=(30, 30))
-        self.delete_button = ctk.CTkButton(self.watchlist_frame, text='', width=30, height=30, image=delete_image,
-                                           command=self.delete, fg_color='transparent', hover_color='grey')
+        self.settings_button = self.generate_button(self.watchlist_frame, self.SETTINGS_ICON_BLACK_PATH,
+                                                    self.SETTINGS_ICON_WHITE_PATH, self.open_settings_window)
+        self.historical_data_button = self.generate_button(self.watchlist_frame, self.HISTORICAL_DATA_ICON_BLACK_PATH,
+                                                           self.HISTORICAL_DATA_ICON_WHITE_PATH,
+                                                           self.open_historical_data)
+        self.delete_button = self.generate_button(self.watchlist_frame, self.DELETE_ICON_BLACK_PATH,
+                                                  self.DELETE_ICON_WHITE_PATH, self.delete)
         self.asset_image.grid(row=self.row, column=0)
         self.asset_ticker_label.grid(row=self.row, column=1, sticky='w')
         self.price_label.grid(row=self.row, column=2, sticky='w')
         self.change_label.grid(row=self.row, column=3, sticky='w')
         self.settings_button.grid(row=self.row, column=4)
-        self.delete_button.grid(row=self.row, column=5)
+        self.historical_data_button.grid(row=self.row, column=5)
+        self.delete_button.grid(row=self.row, column=6)
 
     def update_data(self, update: Dict[str, float]) -> None:
         """
@@ -209,6 +222,15 @@ class AssetContainer:
             self.asset_settings_window = AssetSettingsWindow(self.app, self.asset_ticker, self.asset_settings)
         self.asset_settings_window.deiconify()
         self.app.after(10, lambda: self.asset_settings_window.focus_force())
+
+    def open_historical_data(self):
+        """
+        Open the HistoricalDataMenu
+        """
+        if self.historical_data_window is None or not self.historical_data_window.winfo_exists():
+            self.historical_data_window = HistoricalDataMenu(self.app, self.asset_ticker)
+        self.historical_data_window.deiconify()
+        self.app.after(10, lambda: self.historical_data_window.focus_force())
 
 
 class AssetSettingsWindow(ctk.CTkToplevel):

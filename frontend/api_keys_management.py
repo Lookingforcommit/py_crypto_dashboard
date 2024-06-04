@@ -24,8 +24,9 @@ class APIKeysMenu(ctk.CTkToplevel):
         self.api_keys_table = APIKeysTable(self, self.app, self.api_keys, self.active_api_key)
         self.new_api_key_frame = NewAPIKeyFrame(self, self.app, self.api_keys_table, self.api_keys)
         self.columnconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
         self.new_api_key_frame.grid(row=0, column=0, sticky='ew', padx=10, pady=(10, 0))
-        self.api_keys_table.grid(row=1, column=0, sticky='ew')
+        self.api_keys_table.grid(row=1, column=0, sticky='nsew')
 
 
 class APIKeysTable(ctk.CTkScrollableFrame):
@@ -48,7 +49,7 @@ class APIKeysTable(ctk.CTkScrollableFrame):
                 self.add_api_key(key_name)
 
     def _create_header(self) -> None:
-        self.grid_columnconfigure((1, 2), weight=1)
+        self.columnconfigure((1, 2), weight=1)
         key_name = ctk.CTkLabel(self, text='Key name', font=('Lucida Console', 14))
         key = ctk.CTkLabel(self, text='Key', font=('Lucida Console', 14))
         key_name.grid(row=1, column=1, sticky='w')
