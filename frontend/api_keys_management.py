@@ -12,6 +12,7 @@ class APIKeysMenu(ctk.CTkToplevel):
     A CTkToplevel window that allows the user to manage his API keys
     """
     WINDOW_NAME = 'API keys management'
+
     def __init__(self, master: 'frontend.main_app.SidebarMenu', app: 'frontend.main_app.App',
                  api_keys: DefaultDict[str, str], active_api_key: StringVar):
         super().__init__(master)
@@ -33,6 +34,7 @@ class APIKeysTable(ctk.CTkScrollableFrame):
     """
     The frame holds the API keys table and allows to change the active key or delete selected keys
     """
+
     def __init__(self, master: APIKeysMenu, app: 'frontend.main_app.App', api_keys: DefaultDict[str, str],
                  active_api_key: StringVar):
         super().__init__(master, fg_color='transparent')
@@ -157,6 +159,7 @@ class NewAPIKeyFrame(ctk.CTkFrame):
     """
     The class allows user to add an API key
     """
+
     def __init__(self, master: APIKeysMenu, app: 'frontend.main_app.App', api_keys_table: APIKeysTable,
                  api_keys: DefaultDict[str, str]):
         super().__init__(master, fg_color='transparent')
@@ -165,9 +168,9 @@ class NewAPIKeyFrame(ctk.CTkFrame):
         self.api_keys = api_keys
         self.key_name_var = StringVar(self, value='Key name')
         self.key_var = StringVar(self, value='Key')
-        self.error_message = StringVar(self, '')
-        self.error_label = self.error_label = ctk.CTkLabel(self, text_color="red", textvariable=self.error_message,
-                                                           font=('Lucida Console', 14), fg_color='transparent')
+        self.status_message = StringVar(self, '')
+        self.status_label = ctk.CTkLabel(self, textvariable=self.status_message, font=('Lucida Console', 14),
+                                         fg_color='transparent')
         self.key_name_entry = ctk.CTkEntry(self, textvariable=self.key_name_var)
         self.key_entry = ctk.CTkEntry(self, textvariable=self.key_var)
         self.enter_button = ctk.CTkButton(self, text='Add', command=self.validate_key)
@@ -175,13 +178,18 @@ class NewAPIKeyFrame(ctk.CTkFrame):
         self.key_name_entry.grid(row=0, column=0, sticky='ew')
         self.key_entry.grid(row=0, column=1, sticky='ew')
         self.enter_button.grid(row=0, column=2)
-        self.error_label.grid(row=1, column=0, sticky='ew', columnspan=2)
+        self.status_label.grid(row=1, column=0, sticky='ew', columnspan=2)
 
     def validate_key(self) -> None:
+        """
+        Check if the API key is correct and add it to the api_keys dictionary
+        """
         if self.key_name_var.get() in self.api_keys or self.key_var.get() in self.api_keys.values():
-            self.error_message.set('The API key is already present in the table')
+            self.status_message.set('The API key is already present in the table')
+            self.status_label.configure(text_color='red')
         else:
             self.api_keys[self.key_name_var.get()] = self.key_var.get()
             self.api_keys_table.add_api_key(self.key_name_var.get())
             self.app.add_api_key(self.key_name_var.get())
-            self.error_message.set('')
+            self.status_message.set('API key added')
+            self.status_label.configure(text_color='LimeGreen')

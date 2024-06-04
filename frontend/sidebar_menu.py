@@ -22,14 +22,14 @@ class NewAssetWindow(ctk.CTkToplevel):
         self.app = master
         self.geometry('500x150')
         self.columnconfigure(0, weight=1)
-        self.error_message = StringVar(self, value='')
+        self.status_message = StringVar(self, value='')
         self.new_asset = StringVar(self, value='BTC')
-        self.error_label = ctk.CTkLabel(self, text_color='red', textvariable=self.error_message, font=('Helvetica', 14))
+        self.status_label = ctk.CTkLabel(self, textvariable=self.status_message, font=('Helvetica', 14))
         self.entry = ctk.CTkEntry(self, textvariable=self.new_asset, font=('Helvetica', 14))
         self.validation_button = ctk.CTkButton(self, text='Add', command=self.validate_asset)
         self.entry.grid(row=0, column=0, sticky='ew')
         self.validation_button.grid(row=0, column=1)
-        self.error_label.grid(row=1, column=0, sticky='ew')
+        self.status_label.grid(row=1, column=0, sticky='ew')
 
     def validate_asset(self):
         """
@@ -37,14 +37,18 @@ class NewAssetWindow(ctk.CTkToplevel):
         """
         new_asset = self.new_asset.get()
         if not self.active_api_key.get():
-            self.error_message.set('No API key selected')
+            self.status_message.set('No API key selected')
+            self.status_label.configure(text_color='red')
         elif new_asset in self.watchlist_assets:
-            self.error_message.set('The asset is already present in the watchlist')
+            self.status_message.set('The asset is already present in the watchlist')
+            self.status_label.configure(text_color='red')
         elif new_asset not in self.valid_assets:
-            self.error_message.set('Incorrect asset ticker')
+            self.status_message.set('Incorrect asset ticker')
+            self.status_label.configure(text_color='red')
         else:
             self.app.add_asset_to_watchlist(new_asset)
-            self.error_message.set('')
+            self.status_message.set(f'{new_asset} added to the watchlist')
+            self.status_label.configure(text_color='LimeGreen')
 
 
 class SidebarMenu(ctk.CTkFrame):

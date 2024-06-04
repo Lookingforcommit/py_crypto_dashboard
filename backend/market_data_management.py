@@ -1,7 +1,7 @@
 import websockets
 import json
 import asyncio
-from typing import Dict, Union, Optional, List, Tuple
+from typing import Dict, Union, Optional, List, Set
 from datetime import datetime
 import requests
 from os.path import isfile
@@ -37,6 +37,23 @@ def download_asset_icon(asset_ticker: str, icon_path: str, api_key: str) -> bool
         return True
 
 
+def get_valid_assets() -> Set[str]:
+    """
+    Get a set of all available coins from the CryptoCompare API
+    """
+    url = 'https://min-api.cryptocompare.com/data/all/coinlist?summary=true'
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for 4xx or 5xx status codes just in case :)
+        data = response.json()['Data']
+        coins = set()
+        for key in data:
+            coins.add(data[key]['Symbol'])
+        return coins
+    except requests.exceptions.RequestException as e:
+        print(e)
+
+
 def insert_to_historical_data(db_manager: DBManager, asset_name: str, price: int, update_time: datetime, change: float):
     """
     Insert a single asset update to the historical data table
@@ -47,14 +64,14 @@ def insert_to_historical_data(db_manager: DBManager, asset_name: str, price: int
 
 
 def get_historical_data(db_manager: DBManager, asset_name: str, start_date: datetime,
-                        end_date: datetime) -> List[Tuple[Union[str, datetime, float]]]:
+                        end_date: datetime) -> List[List[Union[str, datetime, float]]]:
     """
     Get the historical data for a specific asset within a given date range
     """
     query = "SELECT * FROM historical_data WHERE asset_name = %s AND update_time BETWEEN %s AND %s"
     values = (asset_name, start_date, end_date)
     result = db_manager.execute_transaction([query], [values])
-    result = [val[1:] for val in result]
+    result = [list(val[1:]) for val in result]
     return result
 
 

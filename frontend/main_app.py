@@ -1,11 +1,11 @@
 import asyncio
 import customtkinter as ctk
 from tkinter import StringVar
-from typing import Set, List, Union, Tuple
+from typing import List, Union
 from collections import defaultdict
 from datetime import datetime
 
-from backend.market_data_management import WSManager, get_historical_data
+from backend.market_data_management import WSManager, get_historical_data, get_valid_assets
 from backend.db_management import DBManager, MAX_INT
 from frontend.watchlist_management import WatchlistFrame
 from frontend.sidebar_menu import SidebarMenu
@@ -19,11 +19,12 @@ class App(ctk.CTk):
     The main app class which is used for general configuration, application layout and data management
     """
 
-    def __init__(self, valid_assets: Set[str], db_host: str, db_user: str, db_password: str, db_name: str):
+    def __init__(self, db_host: str, db_user: str, db_password: str, db_name: str):
         super().__init__()
         self.title(APP_NAME)
         self.geometry(f'{1100}x{580}')
-        self.valid_assets = valid_assets
+        self.protocol('WM_DELETE_WINDOW', self.on_close)
+        self.valid_assets = get_valid_assets()
         self.watchlist_assets = {}
         self.assets_settings = {}
         self.api_keys = defaultdict()  # {name: key}
@@ -36,6 +37,11 @@ class App(ctk.CTk):
         self.load_api_keys()
         self.ws_manager = WSManager(self, self.db_manager, self.api_keys[self.active_api_key.get()],
                                     self.watchlist_assets, self.assets_settings)
+        self.watchlist_frame = None
+        self.sidebar_frame = None
+        self.init_frames()
+
+    def init_frames(self):
         self.watchlist_frame = WatchlistFrame(self, self.watchlist_assets, self.active_api_key, self.api_keys,
                                               self.assets_settings)
         self.sidebar_frame = SidebarMenu(self, self.valid_assets, self.watchlist_assets, self.api_keys,
@@ -45,7 +51,7 @@ class App(ctk.CTk):
         self.sidebar_frame.grid(row=0, column=0, sticky='nsew')
         self.watchlist_frame.grid(row=0, column=1, sticky='nsew')
 
-    def load_watchlist_assets(self):
+    def load_watchlist_assets(self) -> None:
         """
         Load watchlist assets from the database
         """
@@ -135,7 +141,7 @@ class App(ctk.CTk):
         self.db_manager.execute_transaction([query], [values])
 
     def get_historical_data(self, asset_ticker: str, start_date: datetime,
-                            end_date: datetime) -> List[Tuple[Union[str, datetime, float]]]:
+                            end_date: datetime) -> List[List[Union[str, datetime, float]]]:
         res = get_historical_data(self.db_manager, asset_ticker, start_date, end_date)
         return res
 
@@ -166,3 +172,8 @@ class App(ctk.CTk):
             self.asyncio_tasks_dct['ui_task'] = ui_task
             if self.active_api_key.get():
                 self.start_ws()
+
+    def on_close(self) -> None:
+        self.stop_ws()
+        self.asyncio_tasks_dct['ui_task'].cancel()
+        self.quit()

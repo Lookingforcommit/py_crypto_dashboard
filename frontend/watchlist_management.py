@@ -136,14 +136,14 @@ class AssetContainer:
         self.change_var = DoubleVar(master, change)
         self.row = row
         self.asset_image = None
-        self.delete_button = None
         self.change_label: Optional[ctk.CTkLabel] = None
         self.price_label: Optional[ctk.CTkLabel] = None
         self.asset_ticker_label = None
         self.asset_settings_window: Optional[ctk.CTkToplevel] = None
-        self.settings_button = None
+        self.settings_button: Optional[ctk.CTkButton] = None
         self.historical_data_window: Optional[ctk.CTkToplevel] = None
-        self.historical_data_button = None
+        self.historical_data_button: Optional[ctk.CTkButton] = None
+        self.delete_button: Optional[ctk.CTkButton] = None
         if download_asset_icon(self.asset_ticker, icon_path, api_keys[active_api_key.get()]):
             self.icon_path = icon_path
         else:
@@ -158,7 +158,8 @@ class AssetContainer:
         return img
 
     def generate_button(self, master, light_image_path: str, black_image_path: str, command: Callable, width: int = 30,
-                        height: int = 30, text: str = '', fg_color: str = 'transparent', hover_color: str = 'grey'):
+                        height: int = 30, text: str = '', fg_color: str = 'transparent',
+                        hover_color: str = 'grey') -> ctk.CTkButton:
         image = self.generate_ctk_image(light_image_path, black_image_path, (width, height))
         button = ctk.CTkButton(master, text=text, width=width, height=height, image=image, command=command,
                                fg_color=fg_color, hover_color=hover_color)
@@ -210,6 +211,7 @@ class AssetContainer:
         self.asset_ticker_label.destroy()
         self.price_label.destroy()
         self.change_label.destroy()
+        self.historical_data_button.destroy()
         self.delete_button.destroy()
         if self.asset_settings_window:
             self.asset_settings_window.destroy()
@@ -250,31 +252,31 @@ class AssetSettingsWindow(ctk.CTkToplevel):
         self.shown_asset_settings = convert_asset_settings_to_str(asset_settings)
         self.price_rounding_var = StringVar(self, value=self.shown_asset_settings['price_rounding'])
         self.change_rounding_var = StringVar(self, value=self.shown_asset_settings['change_rounding'])
-        self.error_message = StringVar(self, value='')
+        self.status_message = StringVar(self, value='')
         self.save_button = None
-        self.error_label = None
+        self.status_label: Optional[ctk.CTkLabel] = None
         self.change_rounding_entry = None
         self.price_rounding_entry = None
-        self.change_rounding_label = None
-        self.price_rounding_label = None
-        self.error_label = None
+        self.change_rounding_label: Optional[ctk.CTkLabel] = None
+        self.price_rounding_label: Optional[ctk.CTkLabel] = None
+        self.status_label = None
         self.init_frames()
 
     def init_frames(self):
         self.price_rounding_label = ctk.CTkLabel(self, text='Price decimal places', font=('Helvetica', 14))
-        self.change_rounding_label = ctk.CTkLabel(self, text='Price change decimal places',
-                                                  font=('Helvetica', 14))
+        self.change_rounding_label = ctk.CTkLabel(self, text='Price change decimal places', font=('Helvetica', 14))
         self.price_rounding_entry = ctk.CTkEntry(self, textvariable=self.price_rounding_var, font=('Helvetica', 14))
         self.change_rounding_entry = ctk.CTkEntry(self, textvariable=self.change_rounding_var, font=('Helvetica', 14))
         self.save_button = ctk.CTkButton(self, text='Save', command=self.save_settings)
-        self.error_label = ctk.CTkLabel(self, text_color='red', textvariable=self.error_message, font=('Helvetica', 14))
+        self.status_label = ctk.CTkLabel(self, textvariable=self.status_message, font=('Helvetica', 14),
+                                         text_color='red')
         self.columnconfigure((0, 1), weight=1)
         self.price_rounding_label.grid(row=0, column=0, sticky='w', padx=(10, 0))
         self.change_rounding_label.grid(row=1, column=0, sticky='w', padx=(10, 0))
         self.price_rounding_entry.grid(row=0, column=1, sticky='w')
         self.change_rounding_entry.grid(row=1, column=1, sticky='w')
         self.save_button.grid(row=2, column=0, columnspan=2, pady=(5, 0))
-        self.error_label.grid(row=3, column=0, columnspan=2)
+        self.status_label.grid(row=3, column=0, columnspan=2)
 
     def save_settings(self):
         new_shown_asset_settings = {
@@ -283,11 +285,10 @@ class AssetSettingsWindow(ctk.CTkToplevel):
         }
         new_asset_settings = convert_asset_settings_to_int(new_shown_asset_settings)
         if new_asset_settings is not None:
-            self.error_message.set('')
             for setting in new_asset_settings:
                 self.asset_settings[setting] = new_asset_settings[setting]
             self.shown_asset_settings = new_shown_asset_settings
             self.app.update_watchlist_asset_settings(self.asset_ticker)
             self.withdraw()
         else:
-            self.error_message.set('Incorrect decimal places value')
+            self.status_message.set('Incorrect rounding values')

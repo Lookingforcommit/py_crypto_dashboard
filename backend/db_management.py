@@ -35,9 +35,6 @@ class DBManager:
         if db_connection and db_connection.is_connected():
             db_cursor.close()
             db_connection.close()
-            print("MySQL connection is closed")
-        else:
-            print("No active database connection to close.")
 
     def execute_transaction(self, queries: List[str], values: List[tuple]) -> Any:
         db_connection, db_cursor = self.connect_to_db()
@@ -49,6 +46,9 @@ class DBManager:
         return res
 
     def create_database_and_tables(self):
+        """
+        Creates the application db structure
+        """
         try:
             db_connection = connector.connect(
                 host=self.db_host,
@@ -83,6 +83,5 @@ class DBManager:
             """)
             db_connection.commit()
             self.close_db_connection(db_connection, db_cursor)
-            print("Database and tables created successfully.")
         except connector.Error as e:
             print(f"Error creating database or tables: {e}")
