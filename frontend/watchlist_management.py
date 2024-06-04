@@ -199,9 +199,11 @@ class AssetContainer:
         new_price, new_change = update['price'], update['change']
         self.price_var.set(new_price)
         self.change_var.set(new_change)
-        color = 'red' if new_change < 0 else 'LimeGreen'
-        self.price_label.configure(text_color=color)
-        self.change_label.configure(text_color=color)
+        cur_color = self.price_label.cget('text_color')
+        new_color = 'red' if new_change < 0 else 'LimeGreen'
+        if new_color != cur_color:
+            self.price_label.configure(text_color=new_color)
+            self.change_label.configure(text_color=new_color)
 
     def delete(self) -> None:
         """
