@@ -16,13 +16,13 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `history_data`
+-- Table structure for table `historical_data`
 --
 
-DROP TABLE IF EXISTS `history_data`;
+DROP TABLE IF EXISTS `historical_data`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `history_data` (
+CREATE TABLE historical_data (
   `update_id` int NOT NULL AUTO_INCREMENT,
   `asset_name` char(100) DEFAULT NULL,
   `update_time` datetime DEFAULT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE `history_data` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `history_data`
+-- Dumping data for table `historical_data`
 --
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

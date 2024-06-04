@@ -1,12 +1,13 @@
 import asyncio
 import customtkinter as ctk
 from tkinter import StringVar
-from typing import Set
+from typing import Set, List, Union, Tuple
 from collections import defaultdict
+from datetime import datetime
 
-from backend.market_data_management import WSManager
-from backend.db_management import DBManager
-from frontend.watchlist_management import WatchlistFrame, MAX_INT
+from backend.market_data_management import WSManager, get_historical_data
+from backend.db_management import DBManager, MAX_INT
+from frontend.watchlist_management import WatchlistFrame
 from frontend.sidebar_menu import SidebarMenu
 
 APP_NAME = 'PyCryptoDashboard'
@@ -39,12 +40,15 @@ class App(ctk.CTk):
                                               self.assets_settings)
         self.sidebar_frame = SidebarMenu(self, self.valid_assets, self.watchlist_assets, self.api_keys,
                                          self.active_api_key)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(0, weight=1)
         self.sidebar_frame.grid(row=0, column=0, sticky='nsew')
         self.watchlist_frame.grid(row=0, column=1, sticky='nsew')
 
     def load_watchlist_assets(self):
+        """
+        Load watchlist assets from the database
+        """
         query = "SELECT * FROM watchlist_assets"
         values = ()
         res = self.db_manager.execute_transaction([query], [values])
@@ -53,10 +57,8 @@ class App(ctk.CTk):
             self.assets_settings[row[0]] = {'price_rounding': row[2], 'change_rounding': row[1]}
 
     def add_asset_to_watchlist(self, asset_ticker: str) -> None:
-        #  TODO: check if an asset_ticker is valid for subscription
         """
         Adds a new asset to the watchlist and requests market data for it
-        :param asset_ticker: asset ticker
         """
         query = "INSERT INTO watchlist_assets (price_decimals, change_decimals, asset_ticker) VALUES (%s, %s, %s)"
         values = (MAX_INT, MAX_INT, asset_ticker)
@@ -70,14 +72,12 @@ class App(ctk.CTk):
     def update_watchlist_asset(self, asset_ticker: str) -> None:
         """
         Updates the watchlist assets based on the external websocket data
-        :param asset_ticker: asset_ticker of the updated asset
         """
         self.watchlist_frame.update_asset(asset_ticker)
 
     def update_watchlist_asset_settings(self, asset_ticker: str) -> None:
         """
         Updates the watchlist asset settings in the db after a user-triggered change
-        :param asset_ticker: asset_ticker of the updated asset
         """
         query = "UPDATE watchlist_assets SET price_decimals = %s, change_decimals = %s WHERE asset_ticker = %s"
         settings = self.assets_settings[asset_ticker]
@@ -85,11 +85,17 @@ class App(ctk.CTk):
         self.db_manager.execute_transaction([query], [values])
 
     def delete_watchlist_asset(self, asset_ticker: str) -> None:
+        """
+        Deletes a watchlist asset from the db after a user-triggered removal
+        """
         query = "DELETE FROM watchlist_assets WHERE asset_ticker = %s"
         values = (asset_ticker,)
         self.db_manager.execute_transaction([query], [values])
 
     def load_api_keys(self) -> None:
+        """
+        Load API keys from the db
+        """
         query = "SELECT * FROM api_keys"
         values = ()
         res = self.db_manager.execute_transaction([query], [values])
@@ -99,13 +105,16 @@ class App(ctk.CTk):
                 self.active_api_key.set(row[0])
 
     def add_api_key(self, api_key: str) -> None:
+        """
+        Adds a new API key to the db
+        """
         query = "INSERT INTO api_keys (name, `key`) VALUES (%s, %s)"
         values = (api_key, self.api_keys[api_key])
         self.db_manager.execute_transaction([query], [values])
 
     def change_active_api_key(self, new_val: str) -> None:
         """
-        Changes the active api key for websocket manager
+        Changes the active api key for websocket manager and updates it in the db
         """
         upd_query = "UPDATE api_keys SET active = %s WHERE name = %s"
         values1 = (False, self.active_api_key.get())
@@ -118,22 +127,24 @@ class App(ctk.CTk):
             self.start_ws()
 
     def delete_api_key(self, api_key: str) -> None:
+        """
+        Deletes an API key from the db after a user-triggered removal
+        """
         query = "DELETE FROM api_keys WHERE name = %s"
         values = (api_key,)
         self.db_manager.execute_transaction([query], [values])
 
+    def get_historical_data(self, asset_ticker: str, start_date: datetime,
+                            end_date: datetime) -> List[Tuple[Union[str, datetime, float]]]:
+        res = get_historical_data(self.db_manager, asset_ticker, start_date, end_date)
+        return res
+
     def stop_ws(self) -> None:
-        """
-        Stops an active websocket connection
-        """
         if 'ws_task' in self.asyncio_tasks_dct:
             self.asyncio_tasks_dct['ws_task'].cancel()
             self.ws_manager.stop_active_ws()
 
     def start_ws(self) -> None:
-        """
-        Starts a websocket connection
-        """
         ws_task = self.asyncio_task_group.create_task(self.ws_manager.ws_subscribe_to_agg_index())
         self.asyncio_tasks_dct['ws_task'] = ws_task
 

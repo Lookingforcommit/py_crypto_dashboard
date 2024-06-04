@@ -24,15 +24,15 @@ class APIKeysMenu(ctk.CTkToplevel):
         self.api_keys_table = APIKeysTable(self, self.app, self.api_keys, self.active_api_key)
         self.new_api_key_frame = NewAPIKeyFrame(self, self.app, self.api_keys_table, self.api_keys)
         self.columnconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
         self.new_api_key_frame.grid(row=0, column=0, sticky='ew', padx=10, pady=(10, 0))
-        self.api_keys_table.grid(row=1, column=0, sticky='ew')
+        self.api_keys_table.grid(row=1, column=0, sticky='nsew')
 
 
 class APIKeysTable(ctk.CTkScrollableFrame):
     """
     The frame holds the API keys table and allows to change the active key or delete selected keys
     """
-    #  TODO: Add functionality to validate an API key
     def __init__(self, master: APIKeysMenu, app: 'frontend.main_app.App', api_keys: DefaultDict[str, str],
                  active_api_key: StringVar):
         super().__init__(master, fg_color='transparent')
@@ -49,10 +49,7 @@ class APIKeysTable(ctk.CTkScrollableFrame):
                 self.add_api_key(key_name)
 
     def _create_header(self) -> None:
-        """
-        Create a header for the API keys table
-        """
-        self.grid_columnconfigure((1, 2), weight=1)
+        self.columnconfigure((1, 2), weight=1)
         key_name = ctk.CTkLabel(self, text='Key name', font=('Lucida Console', 14))
         key = ctk.CTkLabel(self, text='Key', font=('Lucida Console', 14))
         key_name.grid(row=1, column=1, sticky='w')
@@ -82,10 +79,6 @@ class APIKeysTable(ctk.CTkScrollableFrame):
             self.change_active_api_key('')
 
     def change_active_api_key(self, new_val: str) -> None:
-        """
-        Change the active api key
-        :param new_val: new active api key name
-        """
         self.app.change_active_api_key(new_val)
 
 
@@ -113,9 +106,6 @@ class APIKeyContainer:
         self.init_frames()
 
     def init_frames(self) -> None:
-        """
-        Initialize the frames and place them in the table frame
-        """
         self.key_name_label = ctk.CTkLabel(self.api_keys_table, text=self.key_name, font=('Lucida Console', 14),
                                            anchor='e')
         self.key_label = ctk.CTkLabel(self.api_keys_table, textvariable=self.key_var, font=('Lucida Console', 14),
@@ -188,9 +178,6 @@ class NewAPIKeyFrame(ctk.CTkFrame):
         self.error_label.grid(row=1, column=0, sticky='ew', columnspan=2)
 
     def validate_key(self) -> None:
-        """
-        Validate the entered API key
-        """
         if self.key_name_var.get() in self.api_keys or self.key_var.get() in self.api_keys.values():
             self.error_message.set('The API key is already present in the table')
         else:
