@@ -1,7 +1,12 @@
+from datetime import datetime
 from typing import Tuple, Any, List
 import mysql.connector as connector
 from mysql.connector.abstracts import MySQLConnectionAbstract, MySQLCursorAbstract
 from mysql.connector.pooling import PooledMySQLConnection
+
+MAX_INT = 2147483647
+MIN_DATETIME = datetime(1000, 1, 1)
+MAX_DATETIME = datetime(9999, 12, 31)
 
 
 class DBManager:
@@ -12,8 +17,7 @@ class DBManager:
         self.db_name = db_name
         self.create_database_and_tables()
 
-    def connect_to_db(self) -> Tuple[
-        PooledMySQLConnection | MySQLConnectionAbstract, MySQLCursorAbstract]:
+    def connect_to_db(self) -> Tuple[PooledMySQLConnection | MySQLConnectionAbstract, MySQLCursorAbstract]:
         try:
             db_connection = connector.connect(
                 host=self.db_host,
