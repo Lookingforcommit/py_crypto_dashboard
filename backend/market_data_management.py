@@ -107,17 +107,21 @@ class WSManager:
         subs = [f"5~CCCAGG~{asset}~USD" for asset in self.watchlist_assets]
         async for ws in websockets.connect(url):
             self.active_ws = ws
-            await ws.send(json.dumps({
-                "action": "SubAdd",
-                "subs": subs
-            }))
-            while True:
-                try:
-                    data = await ws.recv()
-                    data = json.loads(data)
-                    self.process_ws_agg_idx_update(data)
-                except websockets.ConnectionClosed:
-                    continue
+            try:
+                await ws.send(json.dumps({
+                    'action': 'SubAdd',
+                    'subs': subs
+                }))
+                while True:
+                    try:
+                        data = await ws.recv()
+                        data = json.loads(data)
+                        self.process_ws_agg_idx_update(data)
+                    except websockets.ConnectionClosed:
+                        continue
+            except websockets.ConnectionClosedError:
+                print('Invalid API key')
+                break
 
     def stop_active_ws(self) -> None:
         if self.active_ws is not None:

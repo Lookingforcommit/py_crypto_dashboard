@@ -90,9 +90,13 @@ class HistoricalDataSearch(ctk.CTkFrame):
             start_datetime = datetime.strptime(self.start_date_var.get(), DATETIME_FORMAT)
             end_datetime = datetime.strptime(self.end_date_var.get(), DATETIME_FORMAT)
             data = self.app.get_historical_data(self.asset_ticker, start_datetime, end_datetime)
-            self.save_history_data_to_csv(self.output_filename_var.get(), data)
-            self.status_label.configure(text_color='LimeGreen')
-            self.status_message.set(f'Data successfully saved to {self.output_filename_var.get()}')
+            try:
+                self.save_history_data_to_csv(self.output_filename_var.get(), data)
+                self.status_label.configure(text_color='LimeGreen')
+                self.status_message.set(f'Data successfully saved to {self.output_filename_var.get()}')
+            except PermissionError:
+                self.status_label.configure(text_color='red')
+                self.status_message.set(f'Permission denied writing to {self.output_filename_var.get()}')
         except ValueError:
             valid_format = MAX_DATETIME.strftime(DATETIME_FORMAT)
             self.status_label.configure(text_color='red')

@@ -25,8 +25,8 @@ The app is built on Python 3.11.8. Some features may function improperly on olde
 
 ### Assets watchlist
  
-The assets watchlist displays the current market data for selected assets. The appearance of data can be configured in 
-the asset settings window.
+Assets watchlist displays current market data for selected assets. The appearance of data can be configured in the
+asset settings window.
 
 ![py_crypto_dashboard](/resources/readme_files/watchlist_functionality.gif)
 
@@ -35,6 +35,13 @@ the asset settings window.
 You can add new assets to the watchlist in the "Add asset" window. It is opened through the sidebar menu.
 
 ![py_crypto_dashboard](/resources/readme_files/adding_assets.gif)
+
+### Saving historical data
+
+You can save your assets historical data in the .csv format using the "Historical data" window.
+It is opened through the asset row in the watchlist
+
+![py_crypto_dashboard](/resources/readme_files/saving_historical_data.gif)
 
 ### Managing API keys
 

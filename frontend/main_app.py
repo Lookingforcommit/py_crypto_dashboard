@@ -1,7 +1,7 @@
 import asyncio
 import customtkinter as ctk
 from tkinter import StringVar
-from typing import List, Union
+from typing import List, Union, Optional
 from collections import defaultdict
 from datetime import datetime
 
@@ -37,8 +37,8 @@ class App(ctk.CTk):
         self.load_api_keys()
         self.ws_manager = WSManager(self, self.db_manager, self.api_keys[self.active_api_key.get()],
                                     self.watchlist_assets, self.assets_settings)
-        self.watchlist_frame = None
-        self.sidebar_frame = None
+        self.watchlist_frame: Optional[WatchlistFrame] = None
+        self.sidebar_frame: Optional[SidebarMenu] = None
         self.init_frames()
 
     def init_frames(self):
