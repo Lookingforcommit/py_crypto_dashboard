@@ -1,1 +1,3 @@
 config.py
+frontend/resources/asset_icons
+!frontend/resources/asset_icons/error_icon.png
